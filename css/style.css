@@ -1,0 +1,477 @@
+/* 1. 基礎設定 (Reset) */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+:root {
+    --font-main: "Helvetica Neue", Helvetica, Arial, "PingFang TC", "Heiti TC", "Microsoft JhengHei", sans-serif;
+    
+    /* --- 主題配色：流金駝色 --- */
+    
+    /* 背景：暖色調深黑 */
+    --bg-body-gradient: linear-gradient(-45deg, #1c1917, #292524, #000000, #27272a);
+    
+    /* 卡片背景：深暖灰半透明 */
+    --bg-card: rgba(41, 37, 36, 0.75); 
+    
+    /* 文字顏色 */
+    --text-primary: #e7e5e4; /* 暖白 */
+    --text-secondary: #a8a29e; /* 暖灰 */
+    
+    /* 核心強調色：淺駝金 */
+    --accent-color: #E6C288; 
+    
+    /* 發光效果：金色的半透明光暈 */
+    --accent-glow: rgba(230, 194, 136, 0.5);
+    
+    /* 尺寸與特效參數 */
+    --radius-card: 16px;
+    --radius-btn: 50px;
+    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+    --border-glass: 1px solid rgba(255, 230, 180, 0.1); 
+    --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- 全局設定 --- */
+body {
+    background: var(--bg-body-gradient);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite; 
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    line-height: 1.7;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    overflow-x: hidden; /* 防止動畫跑出視窗 */
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* --- 容器設計 (玻璃擬態) --- */
+.container, .res {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 40px;
+    
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: var(--border-glass);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    
+    position: relative;
+    overflow: hidden;
+    z-index: 10; /* 確保內容浮在背景特效之上 */
+}
+
+/* 頂部裝飾光條 */
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+    opacity: 0.8;
+    box-shadow: 0 0 10px var(--accent-color);
+}
+
+/* --- 文字與標題 --- */
+h1, h2, .res_title {
+    color: var(--accent-color);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-shadow: 0 0 15px var(--accent-glow);
+}
+
+.qa, p {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+/* --- 圖片 --- */
+figure {
+    margin: 0 0 2rem 0;
+    text-align: center;
+}
+figure img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 230, 180, 0.15);
+    transition: var(--transition);
+}
+figure img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 30px var(--accent-glow);
+    border-color: var(--accent-color);
+}
+
+/* --- 表單題目卡片 --- */
+fieldset {
+    border: none;
+    padding: 0;
+    margin: 0 0 3rem 0;
+}
+
+legend {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid rgba(230, 194, 136, 0.2);
+    padding-bottom: 10px;
+    text-shadow: 0 0 8px var(--accent-glow);
+}
+
+.question, .choice-questions {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: var(--transition);
+}
+
+.question:hover, .choice-questions:hover {
+    background: rgba(230, 194, 136, 0.05); 
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
+}
+
+/* --- 選項按鈕 (Radio) --- */
+label {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    background-color: rgba(255,255,255,0.03);
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+}
+
+label:hover {
+    background-color: rgba(230, 194, 136, 0.1);
+    color: #fff;
+    padding-left: 25px;
+    border-left: 3px solid var(--accent-color);
+}
+
+input[type="radio"]:checked + span {
+    font-weight: bold;
+    color: var(--accent-color);
+    text-shadow: 0 0 8px var(--accent-glow);
+}
+
+label:has(input:checked) {
+    background: rgba(230, 194, 136, 0.15);
+    border: 1px solid var(--accent-color);
+    box-shadow: 0 0 15px var(--accent-glow) inset;
+}
+
+input[type="radio"] {
+    margin-right: 15px;
+    accent-color: var(--accent-color);
+    width: 1.2em;
+    height: 1.2em;
+}
+
+/* --- 按鈕 --- */
+button, .index_button, .res_btn {
+    display: inline-flex; 
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 300px;
+    margin: 0; 
+    padding: 15px 20px;
+    
+    background: transparent;
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    border-radius: var(--radius-btn);
+    
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px var(--accent-glow);
+    letter-spacing: 2px;
+}
+
+button:hover, .index_button:hover, .res_btn:hover {
+    background: var(--accent-color);
+    color: #1c1917; 
+    box-shadow: 0 0 35px var(--accent-glow);
+    transform: translateY(-3px) scale(1.02);
+    border-color: transparent;
+    z-index: 10;
+}
+
+/* 按鈕容器 */
+.btn-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-top: 2rem;
+    width: 100%;
+}
+
+.academy-nav {
+    display: flex;
+    flex-wrap: wrap;       
+    justify-content: center; 
+    gap: 15px;             
+    margin-top: 2rem;
+    width: 100%;
+}
+
+.academy-nav .res_btn {
+    flex: 1 1 140px;       
+    max-width: 220px;      
+    white-space: nowrap;   
+}
+
+/* --- 結果頁表格 --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+th, td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary);
+}
+th {
+    background-color: rgba(230, 194, 136, 0.1);
+    color: var(--accent-color);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+#top-academy {
+    color: var(--accent-color) !important;
+    text-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* --- 學院特定主題 --- */
+body.theme-red { --bg-body-gradient: linear-gradient(-45deg, #2b0a0a, #4a0404, #000000, #3d0000); --accent-color: #ff4d4d; --accent-glow: rgba(255, 77, 77, 0.6); }
+body.theme-green { --bg-body-gradient: linear-gradient(-45deg, #0f2b0a, #1a4a04, #000000, #143d00); --accent-color: #a3ff00; --accent-glow: rgba(163, 255, 0, 0.5); }
+body.theme-blue { --bg-body-gradient: linear-gradient(-45deg, #0a1f2b, #042a4a, #000000, #00263d); --accent-color: #00eaff; --accent-glow: rgba(0, 234, 255, 0.5); }
+body.theme-black { --bg-body-gradient: linear-gradient(-45deg, #000000, #1a1a1a, #000000, #2b2b2b); --accent-color: #ffffff; --accent-glow: rgba(255, 255, 255, 0.4); --text-primary: #ddd; }
+body.theme-white { --bg-body-gradient: linear-gradient(-45deg, #2c3e50, #4ca1af, #2c3e50); --bg-card: rgba(255, 255, 255, 0.1); --accent-color: #bdc3c7; --accent-glow: rgba(189, 195, 199, 0.5); --text-primary: #ecf0f1; }
+
+/* =========================================
+   新功能：動態背景幾何特效 (Floating Shapes)
+   ========================================= */
+
+/* 背景動畫容器 */
+.bg-squares {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    z-index: 1; /* 位於最底層 */
+    pointer-events: none; /* 讓滑鼠可以穿透點擊到內容 */
+}
+
+.bg-squares li {
+    position: absolute;
+    display: block;
+    list-style: none;
+    width: 20px;
+    height: 20px;
+    background: rgba(230, 194, 136, 0.1); /* 淡淡的金色 */
+    border: 1px solid rgba(230, 194, 136, 0.3);
+    animation: floatUp 25s linear infinite;
+    bottom: -150px; /* 從螢幕下方開始 */
+    
+    /* 讓形狀稍微不同 */
+    border-radius: 4px; 
+}
+
+/* 個別方塊的隨機位置與速度設定 */
+.bg-squares li:nth-child(1) {
+    left: 25%;
+    width: 80px;
+    height: 80px;
+    animation-delay: 0s;
+}
+
+.bg-squares li:nth-child(2) {
+    left: 10%;
+    width: 20px;
+    height: 20px;
+    animation-delay: 2s;
+    animation-duration: 12s;
+    border-radius: 50%; /* 圓形 */
+}
+
+.bg-squares li:nth-child(3) {
+    left: 70%;
+    width: 20px;
+    height: 20px;
+    animation-delay: 4s;
+}
+
+.bg-squares li:nth-child(4) {
+    left: 40%;
+    width: 60px;
+    height: 60px;
+    animation-delay: 0s;
+    animation-duration: 18s;
+}
+
+.bg-squares li:nth-child(5) {
+    left: 65%;
+    width: 20px;
+    height: 20px;
+    animation-delay: 0s;
+}
+
+.bg-squares li:nth-child(6) {
+    left: 75%;
+    width: 110px;
+    height: 110px;
+    animation-delay: 3s;
+}
+
+.bg-squares li:nth-child(7) {
+    left: 35%;
+    width: 150px;
+    height: 150px;
+    animation-delay: 7s;
+    border-radius: 50%; /* 圓形 */
+}
+
+.bg-squares li:nth-child(8) {
+    left: 50%;
+    width: 25px;
+    height: 25px;
+    animation-delay: 15s;
+    animation-duration: 45s;
+}
+
+.bg-squares li:nth-child(9) {
+    left: 20%;
+    width: 15px;
+    height: 15px;
+    animation-delay: 2s;
+    animation-duration: 35s;
+}
+
+.bg-squares li:nth-child(10) {
+    left: 85%;
+    width: 150px;
+    height: 150px;
+    animation-delay: 0s;
+    animation-duration: 11s;
+}
+
+/* 動畫定義：上浮 + 旋轉 */
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0;
+        border-radius: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-1000px) rotate(720deg);
+        opacity: 0;
+        border-radius: 50%;
+    }
+}
+/* --- 學院專屬按鈕配色 (覆蓋通用金色) --- */
+
+/* 🔴 紅馳學院按鈕 */
+.res_btn.btn-red {
+    border-color: #ff4d4d;
+    color: #ff4d4d;
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
+}
+.res_btn.btn-red:hover {
+    background-color: #ff4d4d;
+    color: #000; /* 亮色背景配深色字 */
+    box-shadow: 0 0 35px rgba(255, 77, 77, 0.8);
+}
+
+/* 🟢 綠躍學院按鈕 */
+.res_btn.btn-green {
+    border-color: #a3ff00;
+    color: #a3ff00;
+    box-shadow: 0 0 10px rgba(163, 255, 0, 0.3);
+}
+.res_btn.btn-green:hover {
+    background-color: #a3ff00;
+    color: #000;
+    box-shadow: 0 0 35px rgba(163, 255, 0, 0.8);
+}
+
+/* 🔵 藍行學院按鈕 */
+.res_btn.btn-blue {
+    border-color: #00eaff;
+    color: #00eaff;
+    box-shadow: 0 0 10px rgba(0, 234, 255, 0.3);
+}
+.res_btn.btn-blue:hover {
+    background-color: #00eaff;
+    color: #000;
+    box-shadow: 0 0 35px rgba(0, 234, 255, 0.8);
+}
+
+/* ⚫ 墨佇學院按鈕 (純白光) */
+.res_btn.btn-black {
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+.res_btn.btn-black:hover {
+    background-color: #ffffff;
+    color: #000;
+    box-shadow: 0 0 35px rgba(255, 255, 255, 0.8);
+}
+
+/* ⚪ 銀倚學院按鈕 (銀灰光) */
+.res_btn.btn-white {
+    border-color: #bdc3c7;
+    color: #bdc3c7;
+    box-shadow: 0 0 10px rgba(189, 195, 199, 0.3);
+}
+.res_btn.btn-white:hover {
+    background-color: #bdc3c7;
+    color: #000;
+    box-shadow: 0 0 35px rgba(189, 195, 199, 0.8);
+}
