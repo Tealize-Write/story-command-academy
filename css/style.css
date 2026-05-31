@@ -79,6 +79,7 @@ html {
   --text-primary: var(--text-main);
   --text-secondary: var(--text-muted);
   --accent-color: var(--accent-main);
+  --result-accent-rgb: 201, 167, 106;
 
   /* 尺寸與特效參數 */
   --radius-card: 12px;
@@ -338,8 +339,18 @@ p {
 /* --- 結果頁專用排版 --- */
 .res_ack {
   margin-bottom: 3rem;
+  padding: 16px 18px 2rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* 更細緻的分隔線 */
+  border: 1px solid rgba(var(--result-accent-rgb), 0.22);
+  border-radius: 12px;
+  border-bottom: 1px solid rgba(var(--result-accent-rgb), 0.22); /* 更細緻的分隔線 */
+  background:
+    radial-gradient(circle at 50% 0%, rgba(var(--result-accent-rgb), 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.16)),
+    rgba(17, 26, 36, 0.88);
+  box-shadow:
+    inset 0 0 28px rgba(0, 0, 0, 0.18),
+    0 10px 20px rgba(0, 0, 0, 0.14);
 }
 
 .res_ack-title {
@@ -363,7 +374,7 @@ p {
   border-left: 3px solid var(--accent-color);
   background: linear-gradient(
     90deg,
-    rgba(216, 185, 106, 0.14),
+    rgba(var(--result-accent-rgb), 0.2),
     transparent
   ); /* 漸層背景 */
   padding: 15px 20px;
@@ -705,6 +716,7 @@ body.theme-red {
   --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-flaremarch);
   --accent-glow: rgba(180, 75, 67, 0.18);
+  --result-accent-rgb: 180, 75, 67;
 }
 
 /* 🟢 綠躍學院：詭異螢光與異質生命體 */
@@ -716,6 +728,7 @@ body.theme-green {
   --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-verdance);
   --accent-glow: rgba(111, 141, 85, 0.18);
+  --result-accent-rgb: 111, 141, 85;
 }
 
 /* 🔵 藍行學院：深淵邏輯矩陣 */
@@ -727,19 +740,22 @@ body.theme-blue {
   --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-cerulink);
   --accent-glow: rgba(77, 115, 149, 0.18);
+  --result-accent-rgb: 77, 115, 149;
 }
 
 /* ⚫ 墨佇學院：水墨深淵與紙本靈魂 */
 body.theme-black {
   --bg-body-gradient:
-    radial-gradient(circle at 55% 25%, rgba(114, 81, 115, 0.1), transparent 28%),
+    radial-gradient(circle at 55% 25%, rgba(44, 44, 44, 0.18), transparent 30%),
+    radial-gradient(circle at 12% 72%, rgba(18, 18, 18, 0.24), transparent 34%),
     radial-gradient(circle at 50% 24%, rgba(12, 29, 42, 0.9), transparent 52%),
-    linear-gradient(180deg, #0a1620 0%, #08131a 58%, #050b10 100%);
-  --bg-card: rgba(17, 26, 36, 0.93);
-  --accent-color: var(--college-inkarbor-ui);
-  --accent-glow: rgba(114, 81, 115, 0.16);
+    linear-gradient(180deg, #070b0f 0%, #05070a 58%, #020304 100%);
+  --bg-card: rgba(11, 14, 18, 0.95);
+  --accent-color: #3a3434;
+  --accent-glow: rgba(141, 130, 116, 0.24);
+  --result-accent-rgb: 58, 52, 52;
   --text-primary: #e5ddd0;
-  --text-secondary: #b9ae9d;
+  --text-secondary: #b5ab9d;
 }
 
 /* ⚪ 銀倚學院：月光鈦金屬 */
@@ -751,6 +767,7 @@ body.theme-white {
   --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-silvalean);
   --accent-glow: rgba(201, 195, 183, 0.16);
+  --result-accent-rgb: 201, 195, 183;
   --text-primary: #f0e8d8;
   --text-secondary: #bdb29f;
 }
@@ -789,14 +806,14 @@ body.theme-white {
 }
 
 .res_btn.btn-black {
-  border-color: var(--college-inkarbor-ui);
-  color: var(--college-inkarbor-ui);
-  box-shadow: 0 0 10px rgba(114, 81, 115, 0.16);
+  border-color: #3a3434;
+  color: #d3c8b5;
+  box-shadow: 0 0 10px rgba(58, 52, 52, 0.24);
 }
 .res_btn.btn-black:hover {
-  background-color: var(--college-inkarbor-ui);
-  color: #1a120c;
-  box-shadow: 0 0 24px rgba(114, 81, 115, 0.28);
+  background-color: #3a3434;
+  color: #f1e8d7;
+  box-shadow: 0 0 24px rgba(58, 52, 52, 0.32);
 }
 
 .res_btn.btn-white {
@@ -1253,12 +1270,13 @@ body.theme-white {
   text-align: center;
   margin: 28px 0;
   background:
-    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.06), transparent 32%),
+    radial-gradient(circle at 50% 0%, rgba(var(--result-accent-rgb), 0.16), transparent 34%),
+    radial-gradient(circle at 50% 100%, rgba(var(--result-accent-rgb), 0.08), transparent 42%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0.14)),
     rgba(17, 26, 36, 0.95);
   padding: 24px 20px 20px;
   border-radius: 14px;
-  border: 1px solid rgba(201, 167, 106, 0.26);
+  border: 1px solid rgba(var(--result-accent-rgb), 0.42);
   box-shadow:
     inset 0 0 22px rgba(0, 0, 0, 0.14),
     0 12px 22px rgba(0, 0, 0, 0.14);
@@ -1275,7 +1293,7 @@ body.theme-white {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(201, 167, 106, 0.28),
+    rgba(var(--result-accent-rgb), 0.5),
     transparent
   );
 }
@@ -1290,6 +1308,29 @@ body.theme-white {
 
 .result-reveal-stage {
   position: relative;
+}
+
+.result-reveal-stage::before {
+  content: "";
+  position: absolute;
+  top: 108px;
+  left: 50%;
+  width: 320px;
+  height: 320px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0.22;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 31%, rgba(var(--result-accent-rgb), 0.48) 31.5% 32%, transparent 33%),
+    radial-gradient(circle at 50% 50%, transparent 0 45%, rgba(var(--result-accent-rgb), 0.3) 45.5% 46%, transparent 47%),
+    linear-gradient(0deg, transparent 49.6%, rgba(var(--result-accent-rgb), 0.26) 50%, transparent 50.4%),
+    linear-gradient(90deg, transparent 49.6%, rgba(var(--result-accent-rgb), 0.26) 50%, transparent 50.4%);
+}
+
+.result-reveal-stage > * {
+  position: relative;
+  z-index: 1;
 }
 
 .result-report-wrap {
@@ -1316,7 +1357,7 @@ body.theme-white {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(201, 167, 106, 0.32),
+    rgba(var(--result-accent-rgb), 0.52),
     transparent
   );
 }
@@ -1328,12 +1369,12 @@ body.theme-white {
 
 .result-report-wrap > .score-chart-container {
   position: relative;
-  border-top: 1px solid rgba(201, 167, 106, 0.18);
+  border-top: 1px solid rgba(var(--result-accent-rgb), 0.3);
   padding-top: 18px;
 }
 
 .result-report-wrap .score-chart-container {
-  border-color: rgba(201, 167, 106, 0.18);
+  border-color: rgba(var(--result-accent-rgb), 0.3);
 }
 
 .result-report-wrap .academy-bookshelf-container {
@@ -1347,14 +1388,14 @@ body.theme-white {
 .result-report-wrap .action-card {
   min-height: 72px;
   border-radius: 12px;
-  border-color: rgba(201, 167, 106, 0.24);
+  border-color: rgba(var(--result-accent-rgb), 0.34);
   background:
-    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.08), transparent 34%),
+    radial-gradient(circle at 50% 0%, rgba(var(--result-accent-rgb), 0.18), transparent 34%),
     linear-gradient(160deg, rgba(35, 29, 24, 0.84), rgba(23, 18, 15, 0.92));
 }
 
 .result-report-wrap .action-card:hover {
-  border-color: rgba(201, 167, 106, 0.42);
+  border-color: rgba(var(--result-accent-rgb), 0.58);
 }
 
 .result-report-wrap .result-actions-row,
