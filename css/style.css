@@ -171,7 +171,7 @@ body::after {
   border: 1px solid rgba(201, 167, 106, 0.15);
   pointer-events: none;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cpath d='M 0 15 L 0 0 L 15 0 M 100%25 15 L 100%25 0 L calc(100%25 - 15px) 0 M 0 calc(100%25 - 15px) L 0 100%25 L 15 100%25 M 100%25 calc(100%25 - 15px) L 100%25 100%25 L calc(100%25 - 15px) 100%25' fill='none' stroke='%23c9a76a' stroke-width='2' opacity='0.7'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M 0 8 L 0 0 L 8 0 M 92 0 L 100 0 L 100 8 M 0 92 L 0 100 L 8 100 M 92 100 L 100 100 L 100 92' fill='none' stroke='%23c9a76a' stroke-width='1.5' vector-effect='non-scaling-stroke' opacity='0.7'/%3E%3C/svg%3E");
 }
 
 .container::after,
@@ -307,7 +307,7 @@ figure.fig img {
 
 /* --- 文字與標題 --- */
 h1,
-h2,,
+h2,
 .qa,
 .section-label,
 .result-winner-name {
@@ -316,30 +316,23 @@ h2,,
 
 h1,
 h2,
-.res_title
 .res_title {
-p {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  color: var(--text-primary);
-  text-align: justify;
-  text-justify: inter-ideograph;
+  color: var(--accent-color);
 }
 
-.qa {
-  font-size: 1.3rem;
-  color: #f7ecd5;
-  text-align: center;
-  letter-spacing: 0.05em;16);
-}
-
-.qa,
 p {
   font-size: 1.1rem;
   margin-bottom: 1.5rem;
   color: var(--text-primary);
   text-align: justify;
   text-justify: inter-ideograph; /* 優化中文對齊 */
+}
+
+.qa {
+  font-size: 1.3rem;
+  color: #f7ecd5;
+  text-align: center;
+  letter-spacing: 0.05em;
 }
 
 /* --- 結果頁專用排版 --- */
@@ -456,8 +449,15 @@ legend {
   height: 1px;
   background: linear-gradient(
     90deg,
-    transpar0px 20px 20px;
-  margin-bottom: 24px;
+    transparent,
+    rgba(201, 167, 106, 0.22),
+    transparent
+  );
+  pointer-events: none;
+}
+
+#progress-area {
+  padding: 0 0 24px;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -479,40 +479,7 @@ legend {
   height: 2px;
   background: rgba(201, 167, 106, 0.15);
   border: none;
-  border-ra10px 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-#question-card::before,
-#question-card::after {
-  display: none;
-}
-
-#question-card .qa {
-  margin: 10px auto 40px;
-  padding: 0 10px;
-  border: none;
-  background: transparent;
-  text-align: center;
-  font-size: 1.35rem;
-  letter-spacing: 0.06em;
-  color: #e8dbc0;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.8);
-  line-height: 1.5t {
-  order: 3;
-  margin-top: 10px
-  background:
-    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.08), transparent 32%),
-    rgba(17, 26, 36, 0.88);
-  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.14);
-}
-
-#progress-area .progress-bar-track {
-  height: 7px;
-  background: rgba(201, 167, 106, 0.12);
-  border: 1px solid rgba(201, 167, 106, 0.12);
+  border-radius: 0;
 }
 
 #progress-area .progress-bar-fill {
