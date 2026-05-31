@@ -166,32 +166,17 @@ body::after {
 .res::before {
   content: "";
   position: absolute;
-  inset: 12px 14px auto 14px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(201, 167, 106, 0.7),
-    transparent
-  );
-  opacity: 0.8;
+  inset: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 167, 106, 0.15);
   pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cpath d='M 0 15 L 0 0 L 15 0 M 100%25 15 L 100%25 0 L calc(100%25 - 15px) 0 M 0 calc(100%25 - 15px) L 0 100%25 L 15 100%25 M 100%25 calc(100%25 - 15px) L 100%25 100%25 L calc(100%25 - 15px) 100%25' fill='none' stroke='%23c9a76a' stroke-width='2' opacity='0.7'/%3E%3C/svg%3E");
 }
 
 .container::after,
 .res::after {
-  content: "";
-  position: absolute;
-  inset: auto 14px 12px 14px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(201, 167, 106, 0.44),
-    transparent
-  );
-  opacity: 0.8;
-  pointer-events: none;
+  display: none;
 }
 
 .container > .fade-in:first-child {
