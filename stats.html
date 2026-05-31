@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="css/style.css" />
-    <title>字命學院 — 學院人數統計</title>
+    <title>Word Fate Academy — Statistics</title>
   </head>
   <body>
     <ul class="bg-squares">
@@ -23,16 +23,18 @@
     <div class="container fade-in">
       <h1
         id="stats-title"
+        data-i18n-key="statsPageTitle"
         style="text-align: center; color: var(--accent-color)"
       >
-        全員學院分布統計
+        Community Academy Distribution
       </h1>
 
       <p
         id="stats-loading"
+        data-i18n-key="statsLoadingText"
         style="text-align: center; color: var(--text-secondary)"
       >
-        載入資料中…
+        Loading data...
       </p>
       <p
         id="stats-error"
@@ -45,9 +47,10 @@
       <!-- 圓餅圖 -->
       <h3
         id="donut-title"
+        data-i18n-key="donutChartTitle"
         style="text-align: center; color: var(--accent-color); display: none"
       >
-        學院人數比例
+        Academy Distribution
       </h3>
       <div class="stats-chart-wrap" id="donut-wrap" style="display: none">
         <canvas id="donut-chart"></canvas>
@@ -56,9 +59,10 @@
       <!-- 長條圖（絕對人數） -->
       <h3
         id="bar-title"
+        data-i18n-key="barChartTitle"
         style="text-align: center; color: var(--accent-color); display: none"
       >
-        各學院人數
+        Count by Academy
       </h3>
       <div class="stats-chart-wrap" id="bar-wrap" style="display: none">
         <canvas id="bar-chart"></canvas>
@@ -68,8 +72,8 @@
         <a
           href="index.html?page=quiz"
           class="index_button"
-          data-i18n-key="navQuiz"
-          >去測驗</a
+          data-i18n-key="statsGoQuiz"
+          >Go to Quiz</a
         >
       </div>
     </div>
@@ -85,11 +89,16 @@
 
       let donutChart = null;
       let barChart = null;
+      let statsMessageState = "none";
 
       document.addEventListener("DOMContentLoaded", loadStats);
       document.addEventListener("langChanged", () => {
-        // 重建標籤（重新 fetch 太重，直接更新現有 chart 的 labels）
-        if (donutChart || barChart) loadStats();
+        // 有圖表時沿用既有流程重建，無圖表時重套目前訊息語系。
+        if (donutChart || barChart) {
+          loadStats();
+          return;
+        }
+        renderStatsMessage(statsMessageState);
       });
 
       function getNames() {
@@ -116,38 +125,72 @@
           red: "#d85f5f",
           green: "#91b66f",
           blue: "#4f78a8",
-          black: "#7d5b85",
+          black: "#1f1f1f",
           white: "#c9c3b7",
         };
       }
 
-      async function loadStats() {
+      function renderStatsMessage(type) {
         const loadingEl = document.getElementById("stats-loading");
         const errorEl = document.getElementById("stats-error");
+        const t = UI_TRANSLATIONS[window.currentLang || "zh-TW"];
 
-        // GAS URL 未設定 → 顯示提示
-        if (!GAS_STATS_URL || GAS_STATS_URL.startsWith("__")) {
+        statsMessageState = type || "none";
+
+        if (statsMessageState === "loading") {
+          loadingEl.style.display = "";
+          errorEl.style.display = "none";
+          return;
+        }
+
+        if (statsMessageState === "gasMissing") {
           loadingEl.style.display = "none";
           errorEl.style.display = "";
-          errorEl.innerHTML =
-            "⚠️ GAS 尚未部署。請先在 <code>calc.js</code> 和 <code>stats.html</code> 中填入 GAS Web App URL。";
+          errorEl.textContent = t.statsGasMissing;
+          return;
+        }
+
+        if (statsMessageState === "loadFailed") {
+          loadingEl.style.display = "none";
+          errorEl.style.display = "";
+          errorEl.textContent = t.statsLoadFailed;
+          return;
+        }
+
+        if (statsMessageState === "empty") {
+          loadingEl.style.display = "none";
+          errorEl.style.display = "";
+          errorEl.textContent = t.statsLoadFailed;
+          return;
+        }
+
+        loadingEl.style.display = "none";
+        errorEl.style.display = "none";
+      }
+
+      async function loadStats() {
+        // GAS URL 未設定 → 顯示提示
+        if (!GAS_STATS_URL || GAS_STATS_URL.startsWith("__")) {
+          renderStatsMessage("gasMissing");
           return;
         }
 
         try {
-          loadingEl.style.display = "";
-          errorEl.style.display = "none";
+          renderStatsMessage("loading");
 
           const res = await fetch(GAS_STATS_URL);
           const json = await res.json();
+
+          if (!json || typeof json !== "object" || !json.counts) {
+            renderStatsMessage("empty");
+            return;
+          }
+
           // 預期格式：{ counts: { red:12, green:8, blue:5, black:3, white:7 }, total: 35 }
           renderCharts(json.counts, json.total);
-          loadingEl.style.display = "none";
+          renderStatsMessage("none");
         } catch (e) {
-          loadingEl.style.display = "none";
-          errorEl.style.display = "";
-          errorEl.textContent =
-            "資料載入失敗，請確認 GAS 已正確部署並允許外部存取。";
+          renderStatsMessage("loadFailed");
         }
       }
 
@@ -163,11 +206,10 @@
           css.getPropertyValue("--text-primary").trim() || "#e7e5e4";
         const accent =
           css.getPropertyValue("--accent-color").trim() || "#e6c288";
+        const t = UI_TRANSLATIONS[window.currentLang || "zh-TW"];
 
         document.getElementById("stats-total").textContent =
-          (window.currentLang === "en"
-            ? "Total participants: "
-            : "總參與人數：") + (total || data.reduce((a, b) => a + b, 0));
+          t.totalParticipants + (total || data.reduce((a, b) => a + b, 0));
 
         // ── 圓餅圖 ──────────────────────────────────────────────────────────
         document.getElementById("donut-title").style.display = "";
@@ -200,7 +242,7 @@
                   label: (ctx) => {
                     const val = ctx.parsed;
                     const pct = total ? ((val / total) * 100).toFixed(1) : 0;
-                    return ` ${val} 人 (${pct}%)`;
+                    return ` ${val} ${t.statsPeopleSuffix} (${pct}%)`;
                   },
                 },
               },
