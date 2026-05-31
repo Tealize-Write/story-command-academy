@@ -14,7 +14,7 @@
     red: "#d85f5f",
     green: "#91b66f",
     blue: "#4f78a8",
-    black: "#7d5b85",
+    black: "#1f1f1f",
     white: "#c9c3b7",
   };
 

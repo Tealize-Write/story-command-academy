@@ -24,6 +24,10 @@ function resolvePageTitle(lang, t) {
     return t.statsPageTitle || t.pageTitle || document.title;
   }
 
+  if (pathname.endsWith("/about.html") || pathname.endsWith("about.html")) {
+    return t.aboutPageTitle || document.title;
+  }
+
   // Standalone pages (e.g. about.html) keep their own title unless they use query/body page routing.
   if (!queryPage && !bodyPage) {
     return document.title;
@@ -45,6 +49,18 @@ function applyLang(lang) {
   document.querySelectorAll("[data-i18n-key]").forEach((el) => {
     const key = el.getAttribute("data-i18n-key");
     if (t[key] !== undefined) el.textContent = t[key];
+  });
+
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-html");
+    if (t[key] !== undefined) el.innerHTML = t[key];
+  });
+
+  document.querySelectorAll("[data-i18n-attr]").forEach((el) => {
+    const attr = el.getAttribute("data-i18n-attr");
+    const key = el.getAttribute("data-i18n-key");
+    if (!attr || !key) return;
+    if (t[key] !== undefined) el.setAttribute(attr, t[key]);
   });
 
   _langBtns?.forEach((btn) =>

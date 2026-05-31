@@ -62,9 +62,9 @@ html {
   --college-verdance-soft: #5f7d4b;
   --college-cerulink: #4f78a8;
   --college-cerulink-soft: #354f72;
-  --college-inkarbor: #7d5b85;
-  --college-inkarbor-soft: #4c3a55;
-  --college-inkarbor-ui: #b79ac0;
+  --college-inkarbor: #1f1f1f;
+  --college-inkarbor-soft: #111111;
+  --college-inkarbor-ui: #d2cbc0;
 
   --bg-body-gradient: radial-gradient(
     ellipse at 50% -15%,
@@ -465,14 +465,14 @@ body.theme-blue {
 body.theme-black {
   --bg-body-gradient: radial-gradient(
     ellipse at 55% 25%,
-    #221b28,
-    #1a1520,
-    #13101a,
+    #1f1f1f,
+    #171717,
+    #101010,
     var(--bg-main)
   );
-  --bg-card: rgba(28, 22, 34, 0.9);
+  --bg-card: rgba(22, 22, 22, 0.9);
   --accent-color: var(--college-inkarbor-ui);
-  --accent-glow: rgba(125, 91, 133, 0.28);
+  --accent-glow: rgba(170, 164, 152, 0.2);
   --text-primary: #e5dfd5;
   --text-secondary: #b3a89d;
 }
@@ -778,9 +778,19 @@ body.theme-white {
   width: auto;
   max-width: none;
   margin: 0 auto;
-  padding: 8px 18px;
-  font-size: 0.9rem;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  border-color: rgba(216, 185, 106, 0.45);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary);
+  opacity: 0.88;
   animation: none !important;
+}
+
+.ritual-skip:hover {
+  color: var(--accent-color);
+  border-color: rgba(216, 185, 106, 0.72);
+  background: rgba(216, 185, 106, 0.08);
 }
 
 .chapter-transition {
@@ -1477,6 +1487,16 @@ a:focus-visible {
   .top-nav .nav-links {
     gap: 12px;
     font-size: 0.85rem;
+  }
+  .progress-text {
+    font-size: 0.76rem;
+    line-height: 1.3;
+    text-align: left;
+  }
+  .progress-hint {
+    font-size: 0.82rem;
+    line-height: 1.35;
+    margin-bottom: 16px;
   }
   .academy-bookshelf-container {
     min-height: 220px;

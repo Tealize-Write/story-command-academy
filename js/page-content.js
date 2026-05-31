@@ -11,28 +11,26 @@
         <h1 data-i18n-key="pageTitle" style="font-size:1.6rem;"></h1>
 
         <figure class="fig">
-          <img src="img/index.jpg" alt="特質測驗圖片"
+          <img src="img/index.jpg" alt="Creative trait quiz visual" data-i18n-key="indexHeroAlt" data-i18n-attr="alt"
                style="max-height:350px; object-fit:cover; width:100%; border-bottom:3px solid var(--accent-color);">
         </figure>
 
         <div class="index_desc">
-          <p style="font-size:1.2rem; text-align:center; color:var(--accent-color);">
-            親愛的新生你好，我是你的學校──瑪臨。
-          </p>
-          <p>為了更了解你的創作風格，系統已為你準備了一份特質測驗。</p>
+          <p style="font-size:1.2rem; text-align:center; color:var(--accent-color);" data-i18n-key="indexGreeting"></p>
+          <p data-i18n-key="indexIntro"></p>
 
           <div style="background:rgba(0,0,0,0.3); padding:25px; border-radius:12px;
                       border:1px solid rgba(255,255,255,0.05); margin:25px 0;">
-            <p style="margin-top:0; font-weight:bold; color:#fff;">測驗程序：</p>
+            <p style="margin-top:0; font-weight:bold; color:#fff;" data-i18n-key="indexProcedureTitle"></p>
             <ul style="list-style:none; padding:0; margin:0;">
-              <li style="margin-bottom:10px;">▸ <strong>第一階段（程度題）：</strong>20 道題目，測試你對創作元素的共鳴強度。</li>
-              <li>▸ <strong>第二階段（選擇題）：</strong>10 道情境選擇，模擬創作中的具體抉擇。</li>
+              <li style="margin-bottom:10px;" data-i18n-key="indexStage1"></li>
+              <li data-i18n-key="indexStage2"></li>
             </ul>
           </div>
 
-          <p>分析完成後，系統將呈現你最適合的學院及各項分數光譜。</p>
+          <p data-i18n-key="indexAfterAnalysis"></p>
           <p class="quiz-duration" data-i18n-key="quizDurationHint"></p>
-          <p style="text-align:center; margin-top:30px; letter-spacing:3px; font-weight:bold; opacity:0.8;">// GOOD LUCK //</p>
+          <p style="text-align:center; margin-top:30px; letter-spacing:3px; font-weight:bold; opacity:0.8;" data-i18n-key="indexGoodLuck"></p>
         </div>
 
         <div class="btn-container">
@@ -43,12 +41,6 @@
 
     quiz: `
       <div id="quiz-wrap">
-        <div id="calibration-card" class="ritual-card" style="display:none;">
-          <p class="ritual-title" data-i18n-key="calibrationTitle"></p>
-          <p class="ritual-desc" data-i18n-key="calibrationDesc"></p>
-          <button type="button" id="calibration-skip" class="res_btn ritual-skip" data-i18n-key="calibrationSkip"></button>
-        </div>
-
         <div id="chapter-transition" class="chapter-transition" style="display:none;" aria-live="polite"></div>
 
         <div id="progress-area" style="display:none;">

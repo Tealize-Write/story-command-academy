@@ -7,12 +7,23 @@ window.UI_TRANSLATIONS = {
     navQuiz: "測驗",
     navAbout: "關於",
     navStats: "統計",
+    indexMetaDescription: "字命學院：測驗你是哪種作者？找出你的創作特質分類！",
+    indexHeroAlt: "特質測驗圖片",
+    indexGreeting: "親愛的新生你好，我是你的學校──瑪臨。",
+    indexIntro: "為了更了解你的創作風格，系統已為你準備了一份特質測驗。",
+    indexProcedureTitle: "測驗程序：",
+    indexStage1:
+      "▸ 第一階段（程度題）：20 道題目，測試你對創作元素的共鳴強度。",
+    indexStage2: "▸ 第二階段（選擇題）：10 道情境選擇，模擬創作中的具體抉擇。",
+    indexAfterAnalysis: "分析完成後，系統將呈現你最適合的學院及各項分數光譜。",
+    indexGoodLuck: "// 祝你判讀順利 //",
     startQuizBtn: "開始測驗",
     part1Label: "壹、程度題",
     part1Desc: "請選擇符合程度（3：完全符合 → 0：沒有）",
     part2Label: "貳、選擇題",
     part2Transition: "快寫完囉！",
     progressText: "第 {cur} 題 / 共 {total} 題",
+    quizStructureHint: "本測驗共 30 題：程度題 20 題＋第二大題 10 題。",
     chapterProgress:
       "第 {chapter} 章 / 共 {chapterTotal} 章 ・ 本章第 {chapterCur} 題 / {chapterSize} 題",
     progressMilestones: [
@@ -25,7 +36,7 @@ window.UI_TRANSLATIONS = {
     quizDurationHint: "約 4-6 分鐘，完成後可取得你的字命判定報告。",
     calibrationTitle: "字命場校準中",
     calibrationDesc: "正在讀取你的敘述頻率與創作脈絡，請稍候。",
-    calibrationSkip: "立即進入",
+    calibrationSkip: "略過校準",
     chapterTransitions: [
       "第一章啟動：開始讀取你的基礎文脈。",
       "第二章切換：敘事偏好已進入比對區。",
@@ -76,9 +87,51 @@ window.UI_TRANSLATIONS = {
     midwayContinueBtn: "繼續",
     creatorBase: "學校創辦人的基地",
     statsPageTitle: "全員學院分布統計",
+    aboutPageTitle: "字命學院【創作特質測驗】測驗與學院的設計",
     donutChartTitle: "學院人數比例",
     barChartTitle: "各學院人數",
     totalParticipants: "總參與人數：",
+    statsLoadingText: "載入資料中...",
+    statsGoQuiz: "去測驗",
+    statsGasMissing: "⚠️ GAS 尚未部署。請先在設定檔填入 GAS Web App URL。",
+    statsLoadFailed: "資料載入失敗，請確認 GAS 已正確部署並允許外部存取。",
+    statsPeopleSuffix: "人",
+    aboutCoverAlt: "喵嗚軟糖隊",
+    aboutOriginTitle: "測驗由來",
+    aboutOriginP1: "謝謝點進來的旅人，我是兌現藍。是個綠躍人。",
+    aboutOriginP2:
+      "這個測驗從個人的小說《字命覺醒》而來，此作品以「寫作產生魔法」為核心。",
+    aboutOriginP3:
+      "將個人在網路打滾十多年來看過的各種作者、創作梗、迷因、信仰、傳說作為題材，企圖寫一個關於「認知」對於人類影響的故事，目前寫完第一集在修稿中。",
+    aboutDesignTitle: "測驗設計",
+    aboutDesignP1:
+      "測驗也同樣來自個人對各種作者的觀察，分類成五種大分類的偏好。",
+    aboutDesignP2:
+      "每題的加減分權重不同，特別是排名喜歡作品的權重最大，最小的是筆跡題。筆跡題目參考自筆跡心理學，推薦書籍：《日本刑警教你從筆跡看穿真實個性》。",
+    aboutDesignP3:
+      "筆跡學很有趣，但需要觀察受測者大量筆跡變化才會更準。若以大眾測驗來說，對部分特例可能不夠準，因此僅以低權重加入，偏向趣味性。",
+    aboutDesignP4:
+      "測驗結果是偏好而不是能力。這份測驗反映的是創作者對哪些特質特別注重，可能是擅長或正在加強。",
+    aboutDesignP5:
+      "這分類比較像光譜，整體會趨向某種狀況，但每個人的呈現都不同。",
+    aboutDesignP6:
+      "個人觀察到，一些很穩定的創作者數值通常更平均，也有特別注重某些特質的人，風格就更鮮明。",
+    aboutDesignP7: "總之條條大路通羅馬，無論哪種類型都很棒。",
+    aboutAcademyTitle: "五個學院",
+    aboutAcademyP1:
+      "測驗中的五個學院，正是故事中《瑪臨高中》的學院。雖然稱作高中，實際更像大學與課後補習班集合體。",
+    aboutAcademyP2:
+      "學院命名結合五個顏色與五種行動方式，顏色與行動都來自個人直覺。",
+    aboutAcademyP3:
+      "例如綠躍講究創意、思考跳躍；藍行講究邏輯考究、步調穩定；紅馳重視市場與 IP、節奏明快；墨佇重視文字與文學，如墨色鶴般佇立；銀倚則重視角色與情感，如兩人相倚。",
+    aboutAcademyP4: "希望你也會對這樣的世界觀感到興趣，歡迎來看看這個故事。",
+    aboutEnrollTitle: "前往《字命覺醒》入學",
+    aboutEnrollPenana: "從 Penana 入學",
+    aboutEnrollKado: "從 KadoKado 入學",
+    aboutEnrollCxc: "從 CXC 入學",
+    aboutEnrollFb: "從 FB 找學校創辦人",
+    aboutEnrollIg: "從 IG 找學校創辦人",
+    aboutEnrollPlurk: "從 Plurk 找學校創辦人",
     part1Badge: "PART I",
     part2Badge: "PART II",
   },
@@ -88,6 +141,20 @@ window.UI_TRANSLATIONS = {
     navQuiz: "Quiz",
     navAbout: "About",
     navStats: "Stats",
+    indexMetaDescription:
+      "Word Fate Academy: discover your creator type and creative trait profile.",
+    indexHeroAlt: "Creative trait quiz visual",
+    indexGreeting: "Dear newcomer, this is your school speaking: Marlin.",
+    indexIntro:
+      "To understand your creative style better, we prepared a trait quiz for you.",
+    indexProcedureTitle: "Quiz format:",
+    indexStage1:
+      "▸ Stage 1 (Degree Questions): 20 prompts to measure your resonance with core creative elements.",
+    indexStage2:
+      "▸ Stage 2 (Choice Questions): 10 scenarios simulating concrete creative decisions.",
+    indexAfterAnalysis:
+      "After analysis, the system reveals your best-fit academy and full score spectrum.",
+    indexGoodLuck: "// GOOD LUCK //",
     startQuizBtn: "Start Quiz",
     part1Label: "Part I — Degree Questions",
     part1Desc:
@@ -95,6 +162,8 @@ window.UI_TRANSLATIONS = {
     part2Label: "Part II — Choice Questions",
     part2Transition: "you're almost there!",
     progressText: "Question {cur} / {total}",
+    quizStructureHint:
+      "30 questions total: 20 degree questions + 10 part-II choices.",
     chapterProgress:
       "Chapter {chapter}/{chapterTotal} - {chapterCur}/{chapterSize} in this chapter",
     progressMilestones: [
@@ -109,7 +178,7 @@ window.UI_TRANSLATIONS = {
     calibrationTitle: "Wordfield Calibration",
     calibrationDesc:
       "Reading your narrative frequency and creative pulse. Please hold.",
-    calibrationSkip: "Enter now",
+    calibrationSkip: "Skip calibration",
     chapterTransitions: [
       "Chapter One: baseline narrative traces are being read.",
       "Chapter Two: preference patterns are entering comparison.",
@@ -161,9 +230,55 @@ window.UI_TRANSLATIONS = {
     midwayContinueBtn: "Continue",
     creatorBase: "Creator's Homepage",
     statsPageTitle: "Community Academy Distribution",
+    aboutPageTitle: "Word Fate Academy — Quiz & Academy Design",
     donutChartTitle: "Academy Distribution",
     barChartTitle: "Count by Academy",
     totalParticipants: "Total participants: ",
+    statsLoadingText: "Loading data...",
+    statsGoQuiz: "Go to Quiz",
+    statsGasMissing:
+      "⚠️ GAS is not deployed yet. Please set the GAS Web App URL in your config.",
+    statsLoadFailed:
+      "Failed to load stats. Please verify GAS deployment and public access.",
+    statsPeopleSuffix: "people",
+    aboutCoverAlt: "Meow Gummy Team",
+    aboutOriginTitle: "Why This Quiz Exists",
+    aboutOriginP1:
+      "Thanks for dropping by. I'm Tealize Write, and my own trait leans Verdance.",
+    aboutOriginP2:
+      "This quiz comes from my novel Word Fate Awakening, a story built on the idea that writing can produce magic.",
+    aboutOriginP3:
+      "It draws from years of online creator culture, memes, beliefs, and legends to tell a story about how cognition shapes people.",
+    aboutDesignTitle: "How The Quiz Was Designed",
+    aboutDesignP1:
+      "The structure comes from long-term observation of creators, grouped into five major preference clusters.",
+    aboutDesignP2:
+      "Questions use different weights. Preference ranking carries the heaviest weight, while handwriting-related signals are lightweight references.",
+    aboutDesignP3:
+      "Handwriting psychology is interesting, but accurate interpretation needs broader samples, so this part is intentionally low-weight and playful.",
+    aboutDesignP4:
+      "The result measures preference, not ability. It shows which traits you emphasize most in your creative process.",
+    aboutDesignP5:
+      "Think of this as a spectrum: people may share a tendency, but the way it manifests is always personal.",
+    aboutDesignP6:
+      "Some stable creators show balanced profiles, while others focus hard on a few traits and develop strong signatures.",
+    aboutDesignP7:
+      "Different paths can all lead to great work. Every type has value.",
+    aboutAcademyTitle: "The Five Academies",
+    aboutAcademyP1:
+      "The five academies in the quiz are the same houses from Marlin High in the story world.",
+    aboutAcademyP2:
+      "Each house name combines one color and one motion style, based on intuitive worldbuilding choices.",
+    aboutAcademyP3:
+      "Verdance jumps for novelty, Cerulink advances with logic, Flaremarch accelerates toward market/IP, Inkarbor stands for craft and literary depth, and Silvalean leans into character and emotion.",
+    aboutAcademyP4: "If this world resonates with you, welcome aboard.",
+    aboutEnrollTitle: "Enroll in Word Fate Awakening",
+    aboutEnrollPenana: "Enroll via Penana",
+    aboutEnrollKado: "Enroll via KadoKado",
+    aboutEnrollCxc: "Enroll via CXC",
+    aboutEnrollFb: "Find the creator on Facebook",
+    aboutEnrollIg: "Find the creator on Instagram",
+    aboutEnrollPlurk: "Find the creator on Plurk",
     part1Badge: "PART I",
     part2Badge: "PART II",
   },
