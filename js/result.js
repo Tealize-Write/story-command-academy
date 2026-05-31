@@ -2,12 +2,20 @@
 
 const ACADEMY_ORDER = ["red", "green", "blue", "black", "white"];
 
-const ACADEMY_COLORS = {
-  red: "#ff5c5c",
-  green: "#a3ff00",
-  blue: "#24e5ff",
-  black: "#f5f5f5",
-  white: "#e9c86c",
+const ACADEMY_COLOR_TOKENS = {
+  red: "--college-flaremarch",
+  green: "--college-verdance",
+  blue: "--college-cerulink",
+  black: "--college-inkarbor",
+  white: "--college-silvalean",
+};
+
+const ACADEMY_COLOR_FALLBACK = {
+  red: "#d85f5f",
+  green: "#91b66f",
+  blue: "#4f78a8",
+  black: "#7d5b85",
+  white: "#c9c3b7",
 };
 
 let globalCountsCache = null;
@@ -384,18 +392,56 @@ function renderContent(key) {
   };
 
   const LINK_DEFS = [
-    { href: "https://www.penana.com/story/16766/",                text: "從Penana入學",         row: row1 },
-    { href: "https://www.kadokado.com.tw/book/1425",              text: "從KadoKado入學",       row: row1 },
-    { href: "https://cxc.today/zh/store/ApatiteBlue/work/20217", text: "從CXC入學",            row: row1 },
-    { href: "https://www.facebook.com/TealizeWrite/",            text: "從FB找學校創辦人",     row: row2 },
-    { href: "https://www.instagram.com/tealize_write/",          text: "從IG找學校創辦人",     row: row2 },
-    { href: "https://www.plurk.com/Tealize",                     text: "從Plurk找學校創辦人", row: row2 },
-    { href: "about.html",                       i18nKey: "aboutLinkText", text: "測驗與學院設計",     row: row3 },
-    { href: "https://tealize-write.github.io/", i18nKey: "creatorBase",   text: "學校創辦人的基地", row: row3 },
+    {
+      href: "https://www.penana.com/story/16766/",
+      text: "從Penana入學",
+      row: row1,
+    },
+    {
+      href: "https://www.kadokado.com.tw/book/1425",
+      text: "從KadoKado入學",
+      row: row1,
+    },
+    {
+      href: "https://cxc.today/zh/store/ApatiteBlue/work/20217",
+      text: "從CXC入學",
+      row: row1,
+    },
+    {
+      href: "https://www.facebook.com/TealizeWrite/",
+      text: "從FB找學校創辦人",
+      row: row2,
+    },
+    {
+      href: "https://www.instagram.com/tealize_write/",
+      text: "從IG找學校創辦人",
+      row: row2,
+    },
+    {
+      href: "https://www.plurk.com/Tealize",
+      text: "從Plurk找學校創辦人",
+      row: row2,
+    },
+    {
+      href: "about.html",
+      i18nKey: "aboutLinkText",
+      text: "測驗與學院設計",
+      row: row3,
+    },
+    {
+      href: "https://tealize-write.github.io/",
+      i18nKey: "creatorBase",
+      text: "學校創辦人的基地",
+      row: row3,
+    },
   ];
 
   LINK_DEFS.forEach(({ href, text, i18nKey, row }) => {
-    const link = el("a", { href, className: "res_btn action-card", target: "_blank" });
+    const link = el("a", {
+      href,
+      className: "res_btn action-card",
+      target: "_blank",
+    });
     if (i18nKey) link.setAttribute("data-i18n-key", i18nKey);
     else link.textContent = text;
     bindTrackedLink(link, text, key);
@@ -545,22 +591,43 @@ async function loadGlobalAcademyStats(activeKey) {
 function renderBarShelf(shelf, values, activeKey) {
   shelf.innerHTML = "";
   const names = window.UI_TRANSLATIONS[window.currentLang].academyNames;
+  const academyColors = getAcademyColors();
   const max = Math.max(...values, 1);
   ACADEMY_ORDER.forEach((key, idx) => {
     const v = values[idx];
     const ratio = Math.max(8, Math.round((v / max) * 100));
-    const row = el("div", { className: `academy-book-item${key === activeKey ? " is-top" : ""}` });
+    const row = el("div", {
+      className: `academy-book-item${key === activeKey ? " is-top" : ""}`,
+    });
     const bar = el("div", { className: "academy-book-bar" });
     const fill = el("span", { className: "academy-book-fill" });
     fill.style.height = "0%";
-    fill.style.background = ACADEMY_COLORS[key];
+    fill.style.background = academyColors[key];
     bar.appendChild(fill);
     row.appendChild(bar);
-    row.appendChild(el("span", { className: "academy-book-label" }, names[key]));
+    row.appendChild(
+      el("span", { className: "academy-book-label" }, names[key]),
+    );
     row.appendChild(el("span", { className: "academy-book-score" }, String(v)));
     shelf.appendChild(row);
-    setTimeout(() => { fill.style.height = `${ratio}%`; }, idx * 80 + 16);
+    setTimeout(
+      () => {
+        fill.style.height = `${ratio}%`;
+      },
+      idx * 80 + 16,
+    );
   });
+}
+
+function getAcademyColors() {
+  const style = getComputedStyle(document.documentElement);
+  const result = {};
+  ACADEMY_ORDER.forEach((key) => {
+    const token = ACADEMY_COLOR_TOKENS[key];
+    const fromCss = style.getPropertyValue(token).trim();
+    result[key] = fromCss || ACADEMY_COLOR_FALLBACK[key];
+  });
+  return result;
 }
 
 function renderGlobalAcademyStats(counts, activeKey, total) {
@@ -571,7 +638,9 @@ function renderGlobalAcademyStats(counts, activeKey, total) {
   if (!counts) {
     totalEl.textContent = "";
     shelf.innerHTML = "";
-    shelf.appendChild(el("p", { className: "academy-bookshelf-empty" }, "暫無全體統計資料。"));
+    shelf.appendChild(
+      el("p", { className: "academy-bookshelf-empty" }, "暫無全體統計資料。"),
+    );
     return;
   }
 
@@ -588,7 +657,13 @@ function renderAcademyBookshelf(scoreList, activeKey) {
 
   if (!scoreList) {
     shelf.innerHTML = "";
-    shelf.appendChild(el("p", { className: "academy-bookshelf-empty" }, "請先完成測驗，即可顯示五學院分數。"));
+    shelf.appendChild(
+      el(
+        "p",
+        { className: "academy-bookshelf-empty" },
+        "請先完成測驗，即可顯示五學院分數。",
+      ),
+    );
     return;
   }
 

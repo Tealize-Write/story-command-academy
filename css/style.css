@@ -38,21 +38,44 @@ html {
     "Helvetica Neue", Helvetica, Arial, "PingFang TC", "Heiti TC",
     "Microsoft JhengHei", sans-serif;
 
-  /* --- 主題配色：流金駝色 --- */
-  --bg-body-gradient: linear-gradient(
-    -45deg,
-    #0c0a09,
-    #1c1917,
-    #000000,
-    #27272a
-  ); /* 更深邃的黑，對比更強 */
-  --bg-card: rgba(41, 37, 36, 0.75);
-  --text-primary: #e7e5e4;
-  --text-secondary: #a8a29e;
+  /* --- 字命場主題色：深墨紙 + 文脈金 --- */
+  --bg-main: #101014;
+  --bg-panel: #181820;
+  --bg-card-solid: #20202a;
 
-  /* 核心強調色：淺駝金 */
-  --accent-color: #e6c288;
-  --accent-glow: rgba(230, 194, 136, 0.4);
+  --text-main: #f2eee4;
+  --text-muted: #b8b0a2;
+  --text-faint: #80786d;
+
+  --accent-main: #d8b96a;
+  --accent-soft: #8f7540;
+  --accent-glow: rgba(216, 185, 106, 0.24);
+
+  --border-soft: rgba(242, 238, 228, 0.12);
+  --border-accent: rgba(216, 185, 106, 0.35);
+
+  --college-silvalean: #c9c3b7;
+  --college-silvalean-soft: #8e8a82;
+  --college-flaremarch: #d85f5f;
+  --college-flaremarch-soft: #8f3f45;
+  --college-verdance: #91b66f;
+  --college-verdance-soft: #5f7d4b;
+  --college-cerulink: #4f78a8;
+  --college-cerulink-soft: #354f72;
+  --college-inkarbor: #7d5b85;
+  --college-inkarbor-soft: #4c3a55;
+  --college-inkarbor-ui: #b79ac0;
+
+  --bg-body-gradient: radial-gradient(
+    ellipse at 50% -15%,
+    #1a1a23,
+    var(--bg-panel) 45%,
+    var(--bg-main) 100%
+  );
+  --bg-card: rgba(32, 32, 42, 0.8);
+  --text-primary: var(--text-main);
+  --text-secondary: var(--text-muted);
+  --accent-color: var(--accent-main);
 
   /* 尺寸與特效參數 */
   --radius-card: 16px;
@@ -60,7 +83,7 @@ html {
   --shadow-card: 0 10px 40px -10px rgba(0, 0, 0, 0.7); /* 更柔和但深邃的陰影 */
 
   /* 玻璃邊框：上方亮、下方暗，模擬光照 */
-  --border-glass: 1px solid rgba(255, 230, 180, 0.15);
+  --border-glass: 1px solid var(--border-soft);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: all 0.15s ease;
 }
@@ -69,7 +92,7 @@ html {
 body {
   background: var(--bg-body-gradient);
   background-size: 400% 400%;
-  animation: gradientBG 20s ease infinite; /* 放慢背景流動速度，更優雅 */
+  animation: gradientBG 36s ease infinite;
   color: var(--text-primary);
   font-family: var(--font-main);
   line-height: 1.8;
@@ -102,7 +125,7 @@ body {
   backdrop-filter: blur(16px); /* 加強模糊 */
   -webkit-backdrop-filter: blur(16px);
   border: var(--border-glass);
-  border-top: 1px solid rgba(255, 230, 180, 0.3); /* 頂部高光 */
+  border-top: 1px solid var(--border-accent);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
 
@@ -140,7 +163,7 @@ h2,
   font-weight: 400;
   font-size: clamp(1.4rem, 4vw, 2rem);
   letter-spacing: 0.1em;
-  text-shadow: 0 0 20px var(--accent-glow);
+  text-shadow: 0 0 10px var(--accent-glow);
 }
 
 .qa,
@@ -165,7 +188,7 @@ p {
   text-align: center;
   margin: 2rem 0 1.5rem;
   color: var(--accent-color);
-  text-shadow: 0 0 15px var(--accent-glow);
+  text-shadow: 0 0 10px var(--accent-glow);
   letter-spacing: 4px;
   border-bottom: none; /* 移除舊的底線 */
 }
@@ -180,7 +203,7 @@ p {
   border-left: 3px solid var(--accent-color);
   background: linear-gradient(
     90deg,
-    rgba(230, 194, 136, 0.1),
+    rgba(216, 185, 106, 0.14),
     transparent
   ); /* 漸層背景 */
   padding: 15px 20px;
@@ -219,7 +242,7 @@ legend {
   margin-bottom: 2rem;
   display: block;
   width: 100%;
-  border-bottom: 1px solid rgba(230, 194, 136, 0.2);
+  border-bottom: 1px solid var(--border-accent);
   padding-bottom: 15px;
   text-shadow: 0 0 10px var(--accent-glow);
 }
@@ -237,7 +260,7 @@ legend {
 .question:hover,
 .choice-questions:hover {
   background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(230, 194, 136, 0.5);
+  border-color: var(--border-accent);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
   transform: translateY(-3px);
 }
@@ -257,7 +280,7 @@ label {
 }
 
 label:hover {
-  background-color: rgba(230, 194, 136, 0.08);
+  background-color: rgba(216, 185, 106, 0.08);
   color: #fff;
   padding-left: 28px;
   border-color: var(--accent-color);
@@ -266,9 +289,9 @@ label:hover {
 
 /* 選中狀態 */
 label:has(input:checked) {
-  background: rgba(230, 194, 136, 0.15);
+  background: rgba(216, 185, 106, 0.16);
   border: 1px solid var(--accent-color);
-  box-shadow: 0 0 20px rgba(230, 194, 136, 0.1) inset;
+  box-shadow: 0 0 20px rgba(216, 185, 106, 0.1) inset;
   color: #fff;
 }
 
@@ -307,26 +330,8 @@ button,
   transition: var(--transition);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   letter-spacing: 2px;
-}
-
-/* 呼吸燈動畫 */
-@keyframes pulseGlow {
-  0% {
-    box-shadow: 0 0 5px var(--accent-glow);
-  }
-  50% {
-    box-shadow: 0 0 20px var(--accent-glow);
-    border-color: #fff;
-  }
-  100% {
-    box-shadow: 0 0 5px var(--accent-glow);
-  }
-}
-button,
-.index_button {
-  animation: pulseGlow 3s infinite;
 }
 
 button:hover,
@@ -346,6 +351,12 @@ button:active,
 .res_btn:active {
   transform: translateY(1px) scale(0.98); /* 點擊回饋 */
   box-shadow: 0 0 10px var(--accent-glow);
+}
+
+button:focus-visible,
+.index_button:focus-visible,
+.res_btn:focus-visible {
+  box-shadow: 0 0 18px var(--accent-glow);
 }
 
 .btn-container {
@@ -411,130 +422,130 @@ tr:hover td {
 /* 🔴 紅馳學院：烈焰與霓虹殘影 */
 body.theme-red {
   --bg-body-gradient: radial-gradient(
-    ellipse at 85% 15%,
-    #5a0808,
-    #300404,
-    #150101,
-    #000000
+    ellipse at 80% 10%,
+    #2a151a,
+    #201218,
+    #131017,
+    var(--bg-main)
   );
-  --bg-card: rgba(48, 12, 12, 0.82);
-  --accent-color: #ff5c5c;
-  --accent-glow: rgba(255, 92, 92, 0.55);
+  --bg-card: rgba(35, 24, 28, 0.82);
+  --accent-color: var(--college-flaremarch);
+  --accent-glow: rgba(216, 95, 95, 0.28);
 }
 
 /* 🟢 綠躍學院：詭異螢光與異質生命體 */
 body.theme-green {
   --bg-body-gradient: radial-gradient(
-    ellipse at 50% -5%,
-    #0d3b00,
-    #061e00,
-    #020d00,
-    #000000
+    ellipse at 50% -10%,
+    #1e2a1a,
+    #172117,
+    #111713,
+    var(--bg-main)
   );
-  --bg-card: rgba(10, 28, 6, 0.85);
-  --accent-color: #a3ff00;
-  --accent-glow: rgba(163, 255, 0, 0.45);
+  --bg-card: rgba(27, 34, 26, 0.85);
+  --accent-color: var(--college-verdance);
+  --accent-glow: rgba(145, 182, 111, 0.26);
 }
 
 /* 🔵 藍行學院：深淵邏輯矩陣 */
 body.theme-blue {
   --bg-body-gradient: radial-gradient(
-    ellipse at 15% 50%,
-    #001640,
-    #00091f,
-    #000408,
-    #000000
+    ellipse at 12% 40%,
+    #1b2536,
+    #141d2d,
+    #111825,
+    var(--bg-main)
   );
-  --bg-card: rgba(0, 12, 30, 0.88);
-  --accent-color: #00eaff;
-  --accent-glow: rgba(0, 234, 255, 0.55);
+  --bg-card: rgba(24, 31, 44, 0.88);
+  --accent-color: var(--college-cerulink);
+  --accent-glow: rgba(79, 120, 168, 0.26);
 }
 
 /* ⚫ 墨佇學院：水墨深淵與紙本靈魂 */
 body.theme-black {
   --bg-body-gradient: radial-gradient(
-    ellipse at 50% 30%,
-    #1c1c1c,
-    #0e0e0e,
-    #040404,
-    #000000
+    ellipse at 55% 25%,
+    #221b28,
+    #1a1520,
+    #13101a,
+    var(--bg-main)
   );
-  --bg-card: rgba(8, 8, 8, 0.92);
-  --accent-color: #f0ebe0;
-  --accent-glow: rgba(240, 235, 224, 0.35);
-  --text-primary: #f0ebe0;
-  --text-secondary: #9e9890;
+  --bg-card: rgba(28, 22, 34, 0.9);
+  --accent-color: var(--college-inkarbor-ui);
+  --accent-glow: rgba(125, 91, 133, 0.28);
+  --text-primary: #e5dfd5;
+  --text-secondary: #b3a89d;
 }
 
 /* ⚪ 銀倚學院：月光鈦金屬 */
 body.theme-white {
   --bg-body-gradient: radial-gradient(
-    ellipse at 80% 10%,
-    #1a2540,
-    #0d1525,
-    #050910,
-    #000000
+    ellipse at 85% 10%,
+    #242226,
+    #1c1b20,
+    #151418,
+    var(--bg-main)
   );
-  --bg-card: rgba(255, 255, 255, 0.07);
-  --accent-color: #b8cce0;
-  --accent-glow: rgba(184, 204, 224, 0.45);
-  --text-primary: #e8eef4;
-  --text-secondary: #8a9aaa;
+  --bg-card: rgba(36, 34, 38, 0.82);
+  --accent-color: var(--college-silvalean);
+  --accent-glow: rgba(201, 195, 183, 0.26);
+  --text-primary: #f0ece2;
+  --text-secondary: #b9b0a0;
 }
 /* --- 學院專屬按鈕配色 --- */
 .res_btn.btn-red {
-  border-color: #ff5c5c;
-  color: #ff5c5c;
-  box-shadow: 0 0 10px rgba(255, 92, 92, 0.2);
+  border-color: var(--college-flaremarch);
+  color: var(--college-flaremarch);
+  box-shadow: 0 0 10px rgba(216, 95, 95, 0.2);
 }
 .res_btn.btn-red:hover {
-  background-color: #ff5c5c;
+  background-color: var(--college-flaremarch);
   color: #000;
-  box-shadow: 0 0 30px rgba(255, 92, 92, 0.6);
+  box-shadow: 0 0 24px rgba(216, 95, 95, 0.4);
 }
 
 .res_btn.btn-green {
-  border-color: #a3ff00;
-  color: #a3ff00;
-  box-shadow: 0 0 10px rgba(163, 255, 0, 0.2);
+  border-color: var(--college-verdance);
+  color: var(--college-verdance);
+  box-shadow: 0 0 10px rgba(145, 182, 111, 0.2);
 }
 .res_btn.btn-green:hover {
-  background-color: #a3ff00;
+  background-color: var(--college-verdance);
   color: #000;
-  box-shadow: 0 0 30px rgba(163, 255, 0, 0.6);
+  box-shadow: 0 0 24px rgba(145, 182, 111, 0.4);
 }
 
 .res_btn.btn-blue {
-  border-color: #00eaff;
-  color: #00eaff;
-  box-shadow: 0 0 10px rgba(0, 234, 255, 0.2);
+  border-color: var(--college-cerulink);
+  color: var(--college-cerulink);
+  box-shadow: 0 0 10px rgba(79, 120, 168, 0.2);
 }
 .res_btn.btn-blue:hover {
-  background-color: #00eaff;
+  background-color: var(--college-cerulink);
   color: #000;
-  box-shadow: 0 0 30px rgba(0, 234, 255, 0.6);
+  box-shadow: 0 0 24px rgba(79, 120, 168, 0.4);
 }
 
 .res_btn.btn-black {
-  border-color: #f0ebe0;
-  color: #f0ebe0;
-  box-shadow: 0 0 10px rgba(240, 235, 224, 0.2);
+  border-color: var(--college-inkarbor-ui);
+  color: var(--college-inkarbor-ui);
+  box-shadow: 0 0 10px rgba(125, 91, 133, 0.2);
 }
 .res_btn.btn-black:hover {
-  background-color: #f0ebe0;
+  background-color: var(--college-inkarbor-ui);
   color: #000;
-  box-shadow: 0 0 30px rgba(240, 235, 224, 0.5);
+  box-shadow: 0 0 24px rgba(125, 91, 133, 0.4);
 }
 
 .res_btn.btn-white {
-  border-color: #b8cce0;
-  color: #b8cce0;
-  box-shadow: 0 0 10px rgba(184, 204, 224, 0.2);
+  border-color: var(--college-silvalean);
+  color: var(--college-silvalean);
+  box-shadow: 0 0 10px rgba(201, 195, 183, 0.2);
 }
 .res_btn.btn-white:hover {
-  background-color: #b8cce0;
+  background-color: var(--college-silvalean);
   color: #000;
-  box-shadow: 0 0 30px rgba(184, 204, 224, 0.5);
+  box-shadow: 0 0 24px rgba(201, 195, 183, 0.4);
 }
 
 /* --- 動態背景特效 --- */
@@ -554,13 +565,18 @@ body.theme-white {
   position: absolute;
   display: block;
   list-style: none;
-  width: 20px;
-  height: 20px;
-  background: rgba(230, 194, 136, 0.08); /* 稍微降低透明度，避免干擾 */
-  border: 1px solid rgba(230, 194, 136, 0.2);
-  animation: floatUp 25s linear infinite;
+  width: 22px;
+  height: 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(242, 238, 228, 0.09),
+    rgba(216, 185, 106, 0.03)
+  );
+  border: 1px solid rgba(242, 238, 228, 0.08);
+  animation: floatUp 28s linear infinite;
   bottom: -150px;
-  border-radius: 4px;
+  border-radius: 2px;
+  filter: blur(0.5px);
 }
 /* 方塊動畫保持不變 */
 .bg-squares li:nth-child(1) {
@@ -633,17 +649,17 @@ body.theme-white {
 
 @keyframes floatUp {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0) translateX(0) rotate(-6deg);
     opacity: 0;
-    border-radius: 0;
+    border-radius: 2px;
   }
   20% {
-    opacity: 1;
+    opacity: 0.55;
   }
   100% {
-    transform: translateY(-1000px) rotate(720deg);
+    transform: translateY(-1000px) translateX(30px) rotate(8deg);
     opacity: 0;
-    border-radius: 50%;
+    border-radius: 2px;
   }
 }
 
@@ -660,7 +676,7 @@ body.theme-white {
   cursor: pointer;
   font-size: 0.85rem;
   transition: var(--transition);
-  animation: none; /* 覆蓋全局 pulseGlow */
+  animation: none; /* 不使用常駐發光動畫 */
   width: auto;
   max-width: none;
   letter-spacing: 0;
@@ -694,12 +710,21 @@ body.theme-white {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
   animation: shimmer 2s ease-in-out infinite;
 }
 @keyframes shimmer {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(250%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
 }
 .progress-text {
   text-align: right;
@@ -754,14 +779,14 @@ body.theme-white {
   max-width: 100%;
 }
 .quiz-option-btn:hover:not(:disabled) {
-  background: rgba(230, 194, 136, 0.08);
+  background: rgba(216, 185, 106, 0.08);
   color: #fff;
   border-color: var(--accent-color);
   box-shadow: inset 4px 0 0 var(--accent-color);
   transform: none;
 }
 .quiz-option-btn.selected {
-  background: rgba(230, 194, 136, 0.18);
+  background: rgba(216, 185, 106, 0.18);
   border: 1px solid var(--accent-color);
   color: #fff;
   font-weight: bold;
@@ -849,20 +874,37 @@ body.theme-white {
   font-size: clamp(2rem, 6vw, 2.8em);
   display: block;
   margin-top: 10px;
-  background: linear-gradient(135deg, var(--accent-color) 0%, #fff 50%, var(--accent-color) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-color) 0%,
+    #fff 50%,
+    var(--accent-color) 100%
+  );
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: winnerShimmer 3s ease-in-out infinite, winnerPulse 2.5s ease-in-out infinite;
+  animation:
+    winnerShimmer 3s ease-in-out infinite,
+    winnerPulse 2.5s ease-in-out infinite;
 }
 @keyframes winnerShimmer {
-  0%, 100% { background-position: 0% center; }
-  50%       { background-position: 100% center; }
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
 }
 @keyframes winnerPulse {
-  0%, 100% { filter: drop-shadow(0 0 12px var(--accent-glow)); }
-  50%       { filter: drop-shadow(0 0 40px var(--accent-glow)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 12px var(--accent-glow));
+  }
+  50% {
+    filter: drop-shadow(0 0 40px var(--accent-glow));
+  }
 }
 
 .result-chart-title {
@@ -883,7 +925,7 @@ body.theme-white {
     rgba(255, 255, 255, 0.03),
     rgba(0, 0, 0, 0.2)
   );
-  border: 1px solid rgba(230, 194, 136, 0.18);
+  border: 1px solid var(--border-accent);
   border-radius: 12px;
 }
 .score-chart-container h3 {
@@ -904,7 +946,11 @@ body.theme-white {
   gap: 8px;
   padding: 16px 12px 12px;
   border-radius: 10px;
-  background: linear-gradient(180deg, rgba(28, 23, 20, 0.95), rgba(15, 12, 10, 0.95));
+  background: linear-gradient(
+    180deg,
+    rgba(28, 23, 20, 0.95),
+    rgba(15, 12, 10, 0.95)
+  );
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -917,14 +963,30 @@ body.theme-white {
   opacity: 0;
   animation: barItemIn 0.4s ease forwards;
 }
-.academy-book-item:nth-child(1) { animation-delay:   0ms; }
-.academy-book-item:nth-child(2) { animation-delay:  80ms; }
-.academy-book-item:nth-child(3) { animation-delay: 160ms; }
-.academy-book-item:nth-child(4) { animation-delay: 240ms; }
-.academy-book-item:nth-child(5) { animation-delay: 320ms; }
+.academy-book-item:nth-child(1) {
+  animation-delay: 0ms;
+}
+.academy-book-item:nth-child(2) {
+  animation-delay: 80ms;
+}
+.academy-book-item:nth-child(3) {
+  animation-delay: 160ms;
+}
+.academy-book-item:nth-child(4) {
+  animation-delay: 240ms;
+}
+.academy-book-item:nth-child(5) {
+  animation-delay: 320ms;
+}
 @keyframes barItemIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .academy-book-item.is-top .academy-book-label {
@@ -966,12 +1028,21 @@ body.theme-white {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, transparent, rgba(255, 255, 255, 0.18), transparent);
+  background: linear-gradient(
+    to top,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
   animation: shimmerV 2.5s ease-in-out infinite;
 }
 @keyframes shimmerV {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(-250%); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(-250%);
+  }
 }
 
 .academy-book-score {
@@ -982,11 +1053,21 @@ body.theme-white {
   opacity: 0;
   animation: barItemIn 0.3s ease forwards;
 }
-.academy-book-item:nth-child(1) .academy-book-score { animation-delay: 480ms; }
-.academy-book-item:nth-child(2) .academy-book-score { animation-delay: 560ms; }
-.academy-book-item:nth-child(3) .academy-book-score { animation-delay: 640ms; }
-.academy-book-item:nth-child(4) .academy-book-score { animation-delay: 720ms; }
-.academy-book-item:nth-child(5) .academy-book-score { animation-delay: 800ms; }
+.academy-book-item:nth-child(1) .academy-book-score {
+  animation-delay: 480ms;
+}
+.academy-book-item:nth-child(2) .academy-book-score {
+  animation-delay: 560ms;
+}
+.academy-book-item:nth-child(3) .academy-book-score {
+  animation-delay: 640ms;
+}
+.academy-book-item:nth-child(4) .academy-book-score {
+  animation-delay: 720ms;
+}
+.academy-book-item:nth-child(5) .academy-book-score {
+  animation-delay: 800ms;
+}
 
 .academy-bookshelf-empty {
   margin: 0;
@@ -1019,7 +1100,7 @@ body.theme-white {
   min-height: 70px;
   max-width: none;
   border-radius: 14px;
-  border: 1px solid rgba(230, 194, 136, 0.45);
+  border: 1px solid var(--border-accent);
   background: linear-gradient(
     160deg,
     rgba(35, 29, 24, 0.92),
@@ -1126,7 +1207,9 @@ a:focus-visible {
 
 /* ── prefers-reduced-motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
