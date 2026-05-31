@@ -728,9 +728,78 @@ body.theme-white {
 }
 .progress-text {
   text-align: right;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
-  margin: 0 0 20px;
+  margin: 0;
+}
+.progress-hint {
+  margin: 8px 0 20px;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--accent-color);
+  letter-spacing: 0.02em;
+}
+
+.quiz-duration {
+  text-align: center;
+  color: var(--text-secondary);
+  margin: 12px 0 0;
+  font-size: 0.95rem;
+}
+
+.ritual-card,
+.chapter-transition {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border-accent);
+  background: linear-gradient(
+    180deg,
+    rgba(216, 185, 106, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
+}
+
+.ritual-title {
+  margin: 0 0 8px;
+  color: var(--accent-color);
+  text-align: center;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+}
+
+.ritual-desc {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.ritual-skip {
+  width: auto;
+  max-width: none;
+  margin: 0 auto;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  animation: none !important;
+}
+
+.chapter-transition {
+  color: var(--accent-color);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.answer-feedback {
+  margin: -6px 0 10px;
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  min-height: 1.4em;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.answer-feedback.is-visible {
+  opacity: 0.95;
 }
 
 /* ── 部分標題卡 ───────────────────────────────────────────────────────── */
@@ -864,6 +933,54 @@ body.theme-white {
   padding: 24px 20px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.result-reveal-stage {
+  position: relative;
+}
+
+.result-reveal-skip {
+  width: auto;
+  max-width: none;
+  margin: -8px 0 12px auto;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  animation: none !important;
+}
+
+.result-reveal-skip.is-hidden {
+  display: none;
+}
+
+.result-reveal-stage [data-reveal] {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+  pointer-events: none;
+}
+
+.result-reveal-stage[data-reveal-state="act1"] [data-reveal="act1"],
+.result-reveal-stage[data-reveal-state="act2"] [data-reveal="act1"],
+.result-reveal-stage[data-reveal-state="act3"] [data-reveal="act1"] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.result-reveal-stage[data-reveal-state="act2"] [data-reveal="act2"],
+.result-reveal-stage[data-reveal-state="act3"] [data-reveal="act2"] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.result-reveal-stage[data-reveal-state="act3"] [data-reveal="act3"] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 .result-winner-label {
   margin: 0;
@@ -1202,6 +1319,9 @@ a:focus-visible {
   }
   .action-card {
     min-height: 58px;
+  }
+  .result-reveal-skip {
+    margin-right: 0;
   }
 }
 

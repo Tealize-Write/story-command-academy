@@ -1,25 +1,20 @@
 // js/result.js — 學院結果頁渲染（由 result.html 載入）
 
-const ACADEMY_ORDER = ["red", "green", "blue", "black", "white"];
-
-const ACADEMY_COLOR_TOKENS = {
-  red: "--college-flaremarch",
-  green: "--college-verdance",
-  blue: "--college-cerulink",
-  black: "--college-inkarbor",
-  white: "--college-silvalean",
-};
-
-const ACADEMY_COLOR_FALLBACK = {
-  red: "#d85f5f",
-  green: "#91b66f",
-  blue: "#4f78a8",
-  black: "#7d5b85",
-  white: "#c9c3b7",
-};
+const ACADEMY_ORDER = window.ACADEMY_THEME?.ORDER || [
+  "red",
+  "green",
+  "blue",
+  "black",
+  "white",
+];
 
 let globalCountsCache = null;
 let globalTotalCache = 0;
+let revealTimers = [];
+
+// Three-act reveal is presentation-only. Scoring/result data is computed before this.
+const REVEAL_ACT2_DELAY_MS = 520;
+const REVEAL_ACT3_DELAY_MS = 1200;
 
 // 所有學院的段落內容（純中文，hybrid key 為對象學院 id）
 const ACADEMY_CONTENT = {
@@ -310,7 +305,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderContent(key);
   document.addEventListener("langChanged", () => {
-    renderAcademyBookshelf(readLatestScores(), key);
+    updateWinnerName(key);
+    const stage = document.querySelector(".result-reveal-stage");
+    if (stage?.dataset.revealState !== "act1") {
+      renderAcademyBookshelf(readLatestScores(), key);
+    }
     renderGlobalAcademyStats(globalCountsCache, key, globalTotalCache);
   });
   loadGlobalAcademyStats(key);
@@ -329,20 +328,44 @@ function renderContent(key) {
 
   const frag = document.createDocumentFragment();
 
-  // 頁頂標題
   const heading = el("h2", { style: "opacity:0.8;" }, "你的學院測試");
+  heading.setAttribute("data-reveal", "act1");
   frag.appendChild(heading);
 
-  const content = el("div", { className: "res_content" });
+  const content = el("div", { className: "res_content result-reveal-stage" });
 
   const resultTitle = el(
     "h2",
     { className: "res_title", style: "font-size:2.5rem;margin-bottom:30px;" },
     "測試結果",
   );
+  resultTitle.setAttribute("data-reveal", "act1");
   content.appendChild(resultTitle);
 
+  const skipRevealBtn = el("button", {
+    className: "res_btn result-reveal-skip",
+    type: "button",
+  });
+  skipRevealBtn.setAttribute("data-i18n-key", "revealSkip");
+  content.appendChild(skipRevealBtn);
+
+  const winnerBox = el("div", { className: "result-winner-box" });
+  winnerBox.setAttribute("data-reveal", "act1");
+  const winnerLabel = el("p", {
+    className: "result-winner-label",
+    id: "result-winner-label",
+  });
+  winnerLabel.setAttribute("data-i18n-key", "resultTopLabel");
+  const winnerName = el("span", {
+    className: "result-winner-name",
+    id: "result-winner-name",
+  });
+  winnerBox.appendChild(winnerLabel);
+  winnerBox.appendChild(winnerName);
+  content.appendChild(winnerBox);
+
   const scoreWrap = el("div", { className: "score-chart-container" });
+  scoreWrap.setAttribute("data-reveal", "act2");
   const scoreTitle = el("h3", {});
   scoreTitle.setAttribute("data-i18n-key", "scoreChartTitle");
   const shelf = el("div", {
@@ -353,25 +376,23 @@ function renderContent(key) {
   scoreWrap.appendChild(shelf);
   content.appendChild(scoreWrap);
 
-  // 主描述區塊
-  content.appendChild(makeBlock(`── ${zhName} ──`, data.main));
+  const reportWrap = el("div", { className: "result-report-wrap" });
+  reportWrap.setAttribute("data-reveal", "act3");
 
-  // 純種視角
-  content.appendChild(makeBlock(PURE_VIEW_TITLES[key], data.pureView));
+  reportWrap.appendChild(makeBlock(`── ${zhName} ──`, data.main));
+  reportWrap.appendChild(makeBlock(PURE_VIEW_TITLES[key], data.pureView));
 
-  // 混合區塊（依 ACADEMY_ORDER 順序，跳過自己）
   ACADEMY_ORDER.forEach((other) => {
     if (other === key) return;
     const hybridName = ACADEMY_ZH_NAMES[other];
-    content.appendChild(
+    reportWrap.appendChild(
       makeBlock(`同分或次高分是${hybridName}`, data.hybrids[other]),
     );
   });
 
-  // 底部按鈕
   const bgTitle = el("h2", { style: "margin-top:50px;" }, "");
   bgTitle.setAttribute("data-i18n-key", "resultBgTitle");
-  content.appendChild(bgTitle);
+  reportWrap.appendChild(bgTitle);
 
   const btnNav = el("nav", { className: "result-actions-grid" });
 
@@ -455,7 +476,7 @@ function renderContent(key) {
   btnNav.appendChild(row3);
   btnNav.appendChild(row4);
 
-  content.appendChild(btnNav);
+  reportWrap.appendChild(btnNav);
 
   const globalStatsWrap = el("div", { className: "score-chart-container" });
   const globalStatsTitle = el("h3", {});
@@ -471,13 +492,64 @@ function renderContent(key) {
   globalStatsWrap.appendChild(globalStatsTitle);
   globalStatsWrap.appendChild(globalStatsTotal);
   globalStatsWrap.appendChild(globalShelf);
-  content.appendChild(globalStatsWrap);
+  reportWrap.appendChild(globalStatsWrap);
 
+  content.appendChild(reportWrap);
   frag.appendChild(content);
   wrap.appendChild(frag);
 
-  renderAcademyBookshelf(readLatestScores(), key);
+  updateWinnerName(key);
   if (typeof applyLang === "function") applyLang(window.currentLang);
+  startRevealSequence(key, content, skipRevealBtn);
+}
+
+function updateWinnerName(key) {
+  const winnerNameEl = document.getElementById("result-winner-name");
+  if (!winnerNameEl) return;
+  const names = window.UI_TRANSLATIONS?.[window.currentLang]?.academyNames;
+  winnerNameEl.textContent = names?.[key] || ACADEMY_ZH_NAMES[key] || key;
+}
+
+function startRevealSequence(key, content, skipBtn) {
+  // Reveal order: act1 winner -> act2 score bars -> act3 full report.
+  clearRevealTimers();
+
+  const showAct = (act) => {
+    content.dataset.revealState = act;
+  };
+
+  const revealAll = () => {
+    clearRevealTimers();
+    showAct("act3");
+    renderAcademyBookshelf(readLatestScores(), key);
+    skipBtn?.classList.add("is-hidden");
+  };
+
+  skipBtn?.addEventListener("click", revealAll, { once: true });
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    revealAll();
+    return;
+  }
+
+  showAct("act1");
+  revealTimers.push(
+    setTimeout(() => {
+      showAct("act2");
+      renderAcademyBookshelf(readLatestScores(), key);
+    }, REVEAL_ACT2_DELAY_MS),
+  );
+  revealTimers.push(
+    setTimeout(() => {
+      showAct("act3");
+      skipBtn?.classList.add("is-hidden");
+    }, REVEAL_ACT3_DELAY_MS),
+  );
+}
+
+function clearRevealTimers() {
+  revealTimers.forEach((id) => clearTimeout(id));
+  revealTimers = [];
 }
 
 function makeBlock(title, paragraphs) {
@@ -620,14 +692,16 @@ function renderBarShelf(shelf, values, activeKey) {
 }
 
 function getAcademyColors() {
-  const style = getComputedStyle(document.documentElement);
-  const result = {};
-  ACADEMY_ORDER.forEach((key) => {
-    const token = ACADEMY_COLOR_TOKENS[key];
-    const fromCss = style.getPropertyValue(token).trim();
-    result[key] = fromCss || ACADEMY_COLOR_FALLBACK[key];
-  });
-  return result;
+  if (window.ACADEMY_THEME?.getAcademyColors) {
+    return window.ACADEMY_THEME.getAcademyColors();
+  }
+  return {
+    red: "#d85f5f",
+    green: "#91b66f",
+    blue: "#4f78a8",
+    black: "#7d5b85",
+    white: "#c9c3b7",
+  };
 }
 
 function renderGlobalAcademyStats(counts, activeKey, total) {

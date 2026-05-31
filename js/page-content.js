@@ -31,6 +31,7 @@
           </div>
 
           <p>分析完成後，系統將呈現你最適合的學院及各項分數光譜。</p>
+          <p class="quiz-duration" data-i18n-key="quizDurationHint"></p>
           <p style="text-align:center; margin-top:30px; letter-spacing:3px; font-weight:bold; opacity:0.8;">// GOOD LUCK //</p>
         </div>
 
@@ -42,11 +43,20 @@
 
     quiz: `
       <div id="quiz-wrap">
+        <div id="calibration-card" class="ritual-card" style="display:none;">
+          <p class="ritual-title" data-i18n-key="calibrationTitle"></p>
+          <p class="ritual-desc" data-i18n-key="calibrationDesc"></p>
+          <button type="button" id="calibration-skip" class="res_btn ritual-skip" data-i18n-key="calibrationSkip"></button>
+        </div>
+
+        <div id="chapter-transition" class="chapter-transition" style="display:none;" aria-live="polite"></div>
+
         <div id="progress-area" style="display:none;">
           <div class="progress-bar-track">
             <div class="progress-bar-fill" id="progress-fill"></div>
           </div>
           <p class="progress-text" id="progress-text"></p>
+          <p class="progress-hint" id="progress-hint"></p>
         </div>
 
         <div id="section-card" style="display:none;" class="quiz-section-card">
@@ -59,6 +69,7 @@
 
         <div id="question-card" style="display:none;" class="fade-in">
           <p id="question-text" class="qa"></p>
+          <p id="answer-feedback" class="answer-feedback" aria-live="polite"></p>
           <div id="options-container"></div>
         </div>
       </div>

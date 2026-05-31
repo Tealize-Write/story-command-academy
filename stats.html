@@ -78,18 +78,10 @@
     <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/translation.js"></script>
+    <script src="js/academy-theme.js"></script>
     <script>
       // ── GAS 設定（使用共享 config） ───────────────────────────────────────
       const GAS_STATS_URL = GAS_URL;
-
-      const ACADEMY_COLORS = {
-        red: "#ff5c5c",
-        green: "#a3ff00",
-        blue: "#00eaff",
-        black: "#ffffff",
-        white: "#e9c86c",
-      };
-      const ACADEMY_KEYS = ["red", "green", "blue", "black", "white"];
 
       let donutChart = null;
       let barChart = null;
@@ -102,6 +94,31 @@
 
       function getNames() {
         return UI_TRANSLATIONS[window.currentLang || "zh-TW"].academyNames;
+      }
+
+      function getAcademyKeys() {
+        return (
+          window.ACADEMY_THEME?.ORDER || [
+            "red",
+            "green",
+            "blue",
+            "black",
+            "white",
+          ]
+        );
+      }
+
+      function getAcademyColors() {
+        if (window.ACADEMY_THEME?.getAcademyColors) {
+          return window.ACADEMY_THEME.getAcademyColors();
+        }
+        return {
+          red: "#d85f5f",
+          green: "#91b66f",
+          blue: "#4f78a8",
+          black: "#7d5b85",
+          white: "#c9c3b7",
+        };
       }
 
       async function loadStats() {
@@ -136,9 +153,16 @@
 
       function renderCharts(counts, total) {
         const names = getNames();
-        const labels = ACADEMY_KEYS.map((k) => names[k]);
-        const data = ACADEMY_KEYS.map((k) => counts[k] || 0);
-        const colors = ACADEMY_KEYS.map((k) => ACADEMY_COLORS[k]);
+        const keys = getAcademyKeys();
+        const colorMap = getAcademyColors();
+        const labels = keys.map((k) => names[k]);
+        const data = keys.map((k) => counts[k] || 0);
+        const colors = keys.map((k) => colorMap[k]);
+        const css = getComputedStyle(document.documentElement);
+        const textPrimary =
+          css.getPropertyValue("--text-primary").trim() || "#e7e5e4";
+        const accent =
+          css.getPropertyValue("--accent-color").trim() || "#e6c288";
 
         document.getElementById("stats-total").textContent =
           (window.currentLang === "en"
@@ -169,7 +193,7 @@
             plugins: {
               legend: {
                 position: "bottom",
-                labels: { color: "#e7e5e4", padding: 16, font: { size: 13 } },
+                labels: { color: textPrimary, padding: 16, font: { size: 13 } },
               },
               tooltip: {
                 callbacks: {
@@ -209,11 +233,11 @@
             plugins: { legend: { display: false } },
             scales: {
               x: {
-                ticks: { color: "#e7e5e4", stepSize: 1 },
+                ticks: { color: textPrimary, stepSize: 1 },
                 grid: { color: "rgba(255,255,255,0.08)" },
               },
               y: {
-                ticks: { color: "#E6C288", font: { weight: "bold" } },
+                ticks: { color: accent, font: { weight: "bold" } },
                 grid: { display: false },
               },
             },

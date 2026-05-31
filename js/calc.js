@@ -10,28 +10,52 @@ const ACADEMIES = [
   { key: "white" },
 ];
 
+// Immersion flow constants (presentation-only, does not affect scoring).
+const CHAPTER_SIZE = 6;
+const TOTAL_CHAPTERS = 5;
+const PART_1_QUESTION_COUNT = 20;
+const CHAPTER_TRANSITION_START_QUESTIONS = [7, 13, 19, 25];
+const QUESTION_ADVANCE_DELAY_MS = 280;
+const CALIBRATION_DELAY_MS = 900;
+const CALIBRATION_DELAY_REDUCED_MS = 120;
+const CHAPTER_TRANSITION_DELAY_MS = 640;
+const CHAPTER_TRANSITION_DELAY_REDUCED_MS = 90;
+const ANSWER_FEEDBACK_DURATION_MS = 180;
+
 // ── 狀態 ──────────────────────────────────────────────────────────────────
 let scores = [0, 0, 0, 0, 0]; // [red, green, blue, black, white]
 let qIndex = 0;
 let answerHistory = []; // 每題記錄玩家選了哪一個 option index
+let calibrationTimer = null;
+let chapterTransitionTimer = null;
+let feedbackTimer = null;
 window.quizStartTime = 0; // 記錄測驗開始時間（用於計算 timeSpent）
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
 const progressArea = document.getElementById("progress-area");
 const progressFill = document.getElementById("progress-fill");
 const progressText = document.getElementById("progress-text");
+const progressHint = document.getElementById("progress-hint");
+const calibrationCard = document.getElementById("calibration-card");
+const calibrationSkip = document.getElementById("calibration-skip");
+const chapterTransition = document.getElementById("chapter-transition");
 const sectionCard = document.getElementById("section-card");
 const sectionBadge = document.getElementById("section-badge");
 const sectionLabel = document.getElementById("section-label");
 const sectionDesc = document.getElementById("section-desc");
 const questionCard = document.getElementById("question-card");
 const questionText = document.getElementById("question-text");
+const answerFeedback = document.getElementById("answer-feedback");
 const optionsContainer = document.getElementById("options-container");
 const HAS_QUIZ_UI = !!questionText;
+const REDUCED_MOTION = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+).matches;
 
 // ── 入口 ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   if (!HAS_QUIZ_UI) return;
+  calibrationSkip?.addEventListener("click", finishCalibration);
   startQuiz();
 
   document.addEventListener("langChanged", onLangChanged);
@@ -39,13 +63,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function onLangChanged() {
   if (!HAS_QUIZ_UI) return;
+  updateProgressText();
+  updateChapterTransitionText();
+  updateAnswerFeedbackText();
   renderQuestion();
 }
 
 // ── 區塊顯示（第一大題 / 第二大題）──────────────────────────────────────
 function updateSectionHeader() {
   const t = UI_TRANSLATIONS[currentLang];
-  const isPart1 = qIndex < 20;
+  const isPart1 = qIndex < PART_1_QUESTION_COUNT;
   sectionBadge.textContent = isPart1 ? t.part1Badge : t.part2Badge;
   sectionLabel.textContent = isPart1 ? t.part1Label : t.part2Label;
   sectionDesc.textContent = isPart1 ? t.part1Desc : t.part2Transition;
@@ -60,7 +87,52 @@ function startQuiz() {
   if (GAS_URL && !GAS_URL.startsWith("__")) {
     fetch(GAS_URL, { keepalive: true }).catch(() => {});
   }
-  show(progressArea, sectionCard, questionCard);
+  show(progressArea, sectionCard);
+  hide(questionCard, chapterTransition);
+  beginCalibration();
+}
+
+function beginCalibration() {
+  if (!calibrationCard) {
+    finishCalibration();
+    return;
+  }
+  show(calibrationCard);
+  // Calibration is the only transition before chapter 1.
+  const wait = REDUCED_MOTION
+    ? CALIBRATION_DELAY_REDUCED_MS
+    : CALIBRATION_DELAY_MS;
+  clearTimeout(calibrationTimer);
+  calibrationTimer = setTimeout(finishCalibration, wait);
+}
+
+function finishCalibration() {
+  clearTimeout(calibrationTimer);
+  hide(calibrationCard);
+  show(questionCard);
+  renderQuestionWithTransition();
+}
+
+function renderQuestionWithTransition() {
+  const questions = QUIZ_QUESTIONS[currentLang];
+  const total = questions.length;
+  if (qIndex >= total) return;
+
+  // Spec: chapter transitions are shown only before Q7/Q13/Q19/Q25.
+  const nextQuestion = qIndex + 1;
+  if (shouldShowChapterTransition(nextQuestion) && chapterTransition) {
+    updateChapterTransitionText(nextQuestion);
+    show(chapterTransition);
+    const wait = REDUCED_MOTION
+      ? CHAPTER_TRANSITION_DELAY_REDUCED_MS
+      : CHAPTER_TRANSITION_DELAY_MS;
+    clearTimeout(chapterTransitionTimer);
+    chapterTransitionTimer = setTimeout(() => {
+      hide(chapterTransition);
+      renderQuestion();
+    }, wait);
+    return;
+  }
   renderQuestion();
 }
 
@@ -73,11 +145,16 @@ function renderQuestion() {
   const total = questions.length;
   const cur = qIndex + 1;
   const pct = (cur / total) * 100;
+  const chapter = Math.ceil(cur / CHAPTER_SIZE);
+  const chapterCur = ((cur - 1) % CHAPTER_SIZE) + 1;
+  const chapterSize = Math.min(
+    CHAPTER_SIZE,
+    total - (chapter - 1) * CHAPTER_SIZE,
+  );
+  const t = UI_TRANSLATIONS[currentLang];
 
   progressFill.style.width = pct + "%";
-  progressText.textContent = UI_TRANSLATIONS[currentLang].progressText
-    .replace("{cur}", cur)
-    .replace("{total}", total);
+  updateProgressText({ chapter, chapterCur, chapterSize, cur, total });
 
   updateSectionHeader();
   questionText.textContent = q.text;
@@ -101,6 +178,7 @@ function selectOption(optScores, btn, optIdx) {
     .querySelectorAll(".quiz-option-btn")
     .forEach((b) => (b.disabled = true));
   btn.classList.add("selected");
+  showAnswerFeedback();
 
   answerHistory[qIndex] = optIdx; // 記錄答題歷史（平局解析用）
   optScores.forEach((v, i) => {
@@ -110,9 +188,64 @@ function selectOption(optScores, btn, optIdx) {
 
   const questions = QUIZ_QUESTIONS[currentLang];
   setTimeout(() => {
-    if (qIndex < questions.length) renderQuestion();
+    if (qIndex < questions.length) renderQuestionWithTransition();
     else showResult();
-  }, 280);
+  }, QUESTION_ADVANCE_DELAY_MS);
+}
+
+function updateProgressText(metrics) {
+  if (!progressText) return;
+  const t = UI_TRANSLATIONS[currentLang];
+  const total = metrics?.total ?? QUIZ_QUESTIONS[currentLang].length;
+  const cur = metrics?.cur ?? Math.min(qIndex + 1, total);
+  const chapter = metrics?.chapter ?? Math.ceil(cur / CHAPTER_SIZE);
+  const chapterCur = metrics?.chapterCur ?? ((cur - 1) % CHAPTER_SIZE) + 1;
+  const chapterSize =
+    metrics?.chapterSize ??
+    Math.min(CHAPTER_SIZE, total - (chapter - 1) * CHAPTER_SIZE);
+  progressText.textContent = (t.chapterProgress || t.progressText)
+    .replace("{chapter}", chapter)
+    .replace("{chapterTotal}", TOTAL_CHAPTERS)
+    .replace("{chapterCur}", chapterCur)
+    .replace("{chapterSize}", chapterSize)
+    .replace("{cur}", cur)
+    .replace("{total}", total);
+  if (progressHint) {
+    const milestones = t.progressMilestones || [];
+    progressHint.textContent = milestones[chapter - 1] || "";
+  }
+}
+
+function updateChapterTransitionText(questionNumber) {
+  if (!chapterTransition) return;
+  const qNum = questionNumber || qIndex + 1;
+  const chapter = Math.ceil(qNum / CHAPTER_SIZE);
+  const t = UI_TRANSLATIONS[currentLang];
+  const lines = t.chapterTransitions || [];
+  chapterTransition.textContent = lines[chapter - 1] || "";
+}
+
+function showAnswerFeedback() {
+  if (!answerFeedback) return;
+  const t = UI_TRANSLATIONS[currentLang];
+  const pool = t.answerFeedbacks || [];
+  if (!pool.length) return;
+  answerFeedback.textContent = pool[Math.floor(Math.random() * pool.length)];
+  answerFeedback.classList.add("is-visible");
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => {
+    answerFeedback.classList.remove("is-visible");
+  }, ANSWER_FEEDBACK_DURATION_MS);
+}
+
+function shouldShowChapterTransition(questionNumber) {
+  return CHAPTER_TRANSITION_START_QUESTIONS.includes(questionNumber);
+}
+
+function updateAnswerFeedbackText() {
+  if (!answerFeedback || !answerFeedback.classList.contains("is-visible"))
+    return;
+  showAnswerFeedback();
 }
 
 // ── 結果 ──────────────────────────────────────────────────────────────────
@@ -202,4 +335,8 @@ function resetQuiz() {
 // ── 工具函數 ──────────────────────────────────────────────────────────────
 function show(...els) {
   els.forEach((el) => el && (el.style.display = ""));
+}
+
+function hide(...els) {
+  els.forEach((el) => el && (el.style.display = "none"));
 }
