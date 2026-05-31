@@ -15,6 +15,8 @@ let revealTimers = [];
 // Three-act reveal is presentation-only. Scoring/result data is computed before this.
 const REVEAL_ACT2_DELAY_MS = 520;
 const REVEAL_ACT3_DELAY_MS = 1200;
+const MIN_BOOK_HEIGHT_PERCENT = 62;
+const MAX_BOOK_HEIGHT_PERCENT = 96;
 
 // 所有學院的段落內容（純中文，hybrid key 為對象學院 id）
 const ACADEMY_CONTENT = {
@@ -664,31 +666,57 @@ function renderBarShelf(shelf, values, activeKey) {
   shelf.innerHTML = "";
   const names = window.UI_TRANSLATIONS[window.currentLang].academyNames;
   const academyColors = getAcademyColors();
-  const max = Math.max(...values, 1);
+  const percentages = toDisplayPercentages(values);
+
   ACADEMY_ORDER.forEach((key, idx) => {
-    const v = values[idx];
-    const ratio = Math.max(8, Math.round((v / max) * 100));
+    const academyName = names[key] || key;
+    const scorePercent = percentages[idx];
+    const bookHeight =
+      MIN_BOOK_HEIGHT_PERCENT +
+      (scorePercent / 100) *
+        (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT);
     const row = el("div", {
       className: `academy-book-item${key === activeKey ? " is-top" : ""}`,
     });
     const bar = el("div", { className: "academy-book-bar" });
-    const fill = el("span", { className: "academy-book-fill" });
+    const isLatinName = /[A-Za-z]/.test(academyName);
+    const fill = el("span", {
+      className: "academy-book-fill academy-score-book",
+    });
     fill.style.height = "0%";
-    fill.style.background = academyColors[key];
+    fill.style.setProperty("--book-color", academyColors[key]);
+    fill.style.setProperty("--book-height", `${Math.round(bookHeight)}%`);
+    fill.appendChild(
+      el(
+        "span",
+        {
+          className: `academy-book-label academy-book-name${isLatinName ? " is-latin" : ""}`,
+        },
+        academyName,
+      ),
+    );
+    const edge = el("span", { className: "academy-book-edge" });
+    edge.setAttribute("aria-hidden", "true");
+    fill.appendChild(edge);
+    fill.appendChild(
+      el("span", { className: "academy-book-score" }, `${scorePercent}%`),
+    );
     bar.appendChild(fill);
     row.appendChild(bar);
-    row.appendChild(
-      el("span", { className: "academy-book-label" }, names[key]),
-    );
-    row.appendChild(el("span", { className: "academy-book-score" }, String(v)));
     shelf.appendChild(row);
     setTimeout(
       () => {
-        fill.style.height = `${ratio}%`;
+        fill.style.height = fill.style.getPropertyValue("--book-height");
       },
       idx * 80 + 16,
     );
   });
+}
+
+function toDisplayPercentages(values) {
+  const total = values.reduce((sum, n) => sum + (Number(n) || 0), 0);
+  if (!total) return values.map(() => 0);
+  return values.map((n) => Math.round(((Number(n) || 0) / total) * 100));
 }
 
 function getAcademyColors() {
