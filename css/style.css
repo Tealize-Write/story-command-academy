@@ -358,10 +358,15 @@ p {
   font-size: 1.8rem;
   text-align: center;
   margin: 2rem 0 1.5rem;
-  color: var(--accent-color);
-  text-shadow: 0 0 10px var(--accent-glow);
+  color: #f2e7d2;
+  text-shadow: 0 0 12px rgba(var(--result-accent-rgb), 0.45);
   letter-spacing: 4px;
   border-bottom: none; /* 移除舊的底線 */
+}
+
+.res_ack .res_ack-desc {
+  color: #ddd2bd;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 /* 第一段重點強調設計 */
@@ -468,7 +473,7 @@ legend {
 }
 
 #progress-area {
-  padding: 0 0 24px;
+  padding: 4px 4px 24px;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -478,38 +483,66 @@ legend {
 
 #progress-area .progress-text {
   order: 1;
-  text-align: right;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  letter-spacing: 0.1em;
+  text-align: center;
+  color: #dfcfad;
+  font-size: 0.88rem;
+  letter-spacing: 0.12em;
+  font-family: var(--font-serif);
   margin: 0 0 12px;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
 #progress-area .progress-bar-track {
   order: 2;
-  height: 2px;
-  background: rgba(201, 167, 106, 0.15);
-  border: none;
-  border-radius: 0;
+  height: 4px;
+  background: rgba(201, 167, 106, 0.12);
+  border: 1px solid rgba(201, 167, 106, 0.24);
+  border-radius: 999px;
+  position: relative;
+  overflow: visible;
+}
+
+#progress-area .progress-bar-track::before,
+#progress-area .progress-bar-track::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d9c294;
+  transform: translateY(-50%);
+  box-shadow: 0 0 10px rgba(201, 167, 106, 0.35);
+}
+
+#progress-area .progress-bar-track::before {
+  left: -1px;
+}
+
+#progress-area .progress-bar-track::after {
+  right: -1px;
 }
 
 #progress-area .progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
   background: linear-gradient(90deg, #8b6a3e, #ead8ac 22%, #c9a76a 55%, #ead8ac 82%, #8b6a3e);
   box-shadow: 0 0 10px rgba(201, 167, 106, 0.2);
 }
 
 #question-card {
   position: relative;
-  padding: 22px 20px 18px;
+  padding: 20px 18px 18px;
   border-radius: 14px;
   border: 1px solid var(--border-soft);
   background:
-    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.06), transparent 26%),
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.11), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.1)),
     rgba(17, 26, 36, 0.96);
   box-shadow:
     inset 0 0 20px rgba(0, 0, 0, 0.18),
     0 14px 24px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
 }
 
 #question-card::before,
@@ -527,17 +560,20 @@ legend {
 
 #question-card::after {
   background:
-    radial-gradient(circle at 0 50%, rgba(201, 167, 106, 0.16), transparent 12%),
-    radial-gradient(circle at 100% 50%, rgba(201, 167, 106, 0.16), transparent 12%);
-  opacity: 0.5;
+    radial-gradient(circle at 50% 50%, transparent 0 30%, rgba(201, 167, 106, 0.18) 30.8% 31.2%, transparent 32%),
+    linear-gradient(0deg, transparent 49.8%, rgba(201, 167, 106, 0.1) 50%, transparent 50.2%),
+    linear-gradient(90deg, transparent 49.8%, rgba(201, 167, 106, 0.1) 50%, transparent 50.2%);
+  opacity: 0.35;
 }
 
 #question-card .qa {
   margin-top: 0;
-  padding: 12px 14px;
-  border-left: 3px solid rgba(201, 167, 106, 0.34);
-  background: rgba(255, 255, 255, 0.015);
-  border-radius: 0 8px 8px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(201, 167, 106, 0.24);
+  border-left: 3px solid rgba(201, 167, 106, 0.44);
+  background: linear-gradient(90deg, rgba(201, 167, 106, 0.1), rgba(255, 255, 255, 0.02) 55%, transparent);
+  border-radius: 10px;
+  line-height: 1.65;
 }
 
 /* --- 選項按鈕 (Label) --- */
@@ -1014,10 +1050,10 @@ body.theme-white {
 }
 .progress-hint {
   margin: 8px 0 20px;
-  text-align: left;
+  text-align: center;
   font-size: 0.9rem;
-  color: var(--accent-color);
-  letter-spacing: 0.02em;
+  color: #b9aa8c;
+  letter-spacing: 0.08em;
 }
 
 .quiz-duration {
@@ -1133,10 +1169,12 @@ body.theme-white {
   text-align: left;
   padding: 18px 24px 18px 64px;
   margin: 0;
-  background: rgba(8, 14, 20, 0.8);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.14)),
+    rgba(8, 14, 20, 0.86);
   color: var(--text-secondary);
   border: 1px solid rgba(201, 167, 106, 0.24);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 1rem;
   line-height: 1.6;
@@ -1148,6 +1186,20 @@ body.theme-white {
   box-shadow:
     inset 0 0 20px rgba(0, 0, 0, 0.4),
     0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.quiz-option-btn::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateY(-50%) rotate(45deg);
+  border-top: 1px solid rgba(201, 167, 106, 0.45);
+  border-right: 1px solid rgba(201, 167, 106, 0.45);
+  opacity: 0.45;
+  transition: var(--transition-fast);
 }
 
 .quiz-option-btn::before {
@@ -1180,6 +1232,10 @@ body.theme-white {
   transform: translateY(-2px);
 }
 
+.quiz-option-btn:hover:not(:disabled)::after {
+  opacity: 0.8;
+}
+
 .quiz-option-btn.selected {
   background: rgba(201, 167, 106, 0.08);
   border: 1px solid rgba(201, 167, 106, 0.8);
@@ -1197,6 +1253,12 @@ body.theme-white {
   background:
     url("data:image/svg+xml,%3Csvg viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 1 L20 39 M1 20 L39 20' stroke='rgba(201,167,106,0.3)' stroke-width='1.5'/%3E%3Ccircle cx='20' cy='20' r='18' fill='none' stroke='rgba(201,167,106,0.8)' stroke-width='2'/%3E%3Ccircle cx='20' cy='20' r='14' fill='rgba(201,167,106,0.2)' stroke='rgba(201,167,106,0.6)' stroke-width='1.5' stroke-dasharray='3 2'/%3E%3C/svg%3E") no-repeat center center;
   background-size: contain;
+}
+
+.quiz-option-btn.selected::after {
+  opacity: 0.95;
+  border-top-color: rgba(247, 236, 213, 0.88);
+  border-right-color: rgba(247, 236, 213, 0.88);
 }
 .quiz-option-btn:disabled {
   cursor: default;
@@ -1333,6 +1395,25 @@ body.theme-white {
   z-index: 1;
 }
 
+.result-reveal-stage h2,
+.result-reveal-stage h3,
+.result-reveal-stage .res_title {
+  color: #efe4ce;
+  text-shadow: 0 0 12px rgba(var(--result-accent-rgb), 0.45);
+}
+
+.result-winner-label {
+  color: #d8ccb5;
+}
+
+body.theme-black .result-winner-name {
+  background: linear-gradient(135deg, #b8ac98 0%, #f4eee2 50%, #8e806d 100%);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .result-report-wrap {
   position: relative;
 }
@@ -1454,7 +1535,12 @@ body.theme-white {
 .result-winner-label {
   margin: 0;
   font-size: 1.1rem;
-  color: var(--text-secondary);
+  color: #d8ccb5;
+}
+
+#result-wrap > h2 {
+  color: #e7ddc9;
+  text-shadow: 0 0 10px rgba(var(--result-accent-rgb), 0.3);
 }
 .result-winner-name {
   font-size: clamp(2rem, 6vw, 2.8em);

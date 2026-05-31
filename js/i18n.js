@@ -16,14 +16,14 @@ window.UI_TRANSLATIONS = {
       "▸ 第一階段（程度題）：20 道題目，測試你對創作元素的共鳴強度。",
     indexStage2: "▸ 第二階段（選擇題）：10 道情境選擇，模擬創作中的具體抉擇。",
     indexAfterAnalysis: "分析完成後，系統將呈現你最適合的學院及各項分數光譜。",
-    indexGoodLuck: "// 祝你判讀順利 //",
+    indexGoodLuck: "文運昌隆",
     startQuizBtn: "開始測驗",
     part1Label: "壹、程度題",
     part1Desc: "請選擇符合程度（3：完全符合 → 0：沒有）",
     part2Label: "貳、選擇題",
     part2Transition: "快寫完囉！",
     progressText: "第 {cur} 題 / 共 {total} 題",
-    quizStructureHint: "本測驗共 30 題：程度題 20 題＋第二大題 10 題。",
+    quizStructureHint: "本測驗共 30 題：程度題 20 題＋選擇題 10 題。",
     chapterProgress:
       "第 {chapter} 章 / 共 {chapterTotal} 章 ・ 本章第 {chapterCur} 題 / {chapterSize} 題",
     progressMilestones: [

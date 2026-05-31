@@ -146,7 +146,7 @@ function updateProgressText(metrics) {
       t.quizStructureHint ||
       (currentLang === "en"
         ? "30 questions total: 20 degree questions + 10 part-II choices."
-        : "本測驗共 30 題：程度題 20 題＋第二大題 10 題。");
+        : "本測驗共 30 題：程度題 20 題＋選擇題 10 題。");
   }
 }
 
