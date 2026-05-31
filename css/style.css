@@ -1,4 +1,4 @@
-/* style.css - 終極美化版 (流金質感 + 深度玻璃擬態 + 互動優化) */
+/* style.css - 古典典藏版 (深夜藍黑 + 舊金紙本語法) */
 
 html {
   scroll-behavior: smooth;
@@ -37,52 +37,59 @@ html {
   --font-main:
     "Helvetica Neue", Helvetica, Arial, "PingFang TC", "Heiti TC",
     "Microsoft JhengHei", sans-serif;
+  --font-serif: "Noto Serif TC", "Songti TC", "Cormorant Garamond", serif;
 
-  /* --- 字命場主題色：深墨紙 + 文脈金 --- */
-  --bg-main: #101014;
-  --bg-panel: #181820;
-  --bg-card-solid: #20202a;
+  /* --- 典藏館主題色：深夜藍黑 + 舊金紙本 --- */
+  --bg-main: #08131a;
+  --bg-panel: #101923;
+  --bg-card-solid: #121d27;
 
-  --text-main: #f2eee4;
-  --text-muted: #b8b0a2;
-  --text-faint: #80786d;
+  --text-main: #e8dbc0;
+  --text-muted: #b7a989;
+  --text-faint: #7f735f;
 
-  --accent-main: #d8b96a;
-  --accent-soft: #8f7540;
-  --accent-glow: rgba(216, 185, 106, 0.24);
+  --accent-main: #c9a76a;
+  --accent-soft: #8b6a3e;
+  --accent-glow: rgba(201, 167, 106, 0.22);
 
-  --border-soft: rgba(242, 238, 228, 0.12);
-  --border-accent: rgba(216, 185, 106, 0.35);
+  --border-soft: rgba(201, 167, 106, 0.22);
+  --border-strong: rgba(201, 167, 106, 0.42);
+  --border-accent: var(--border-strong);
 
-  --college-silvalean: #c9c3b7;
-  --college-silvalean-soft: #8e8a82;
-  --college-flaremarch: #d85f5f;
-  --college-flaremarch-soft: #8f3f45;
-  --college-verdance: #91b66f;
-  --college-verdance-soft: #5f7d4b;
-  --college-cerulink: #4f78a8;
-  --college-cerulink-soft: #354f72;
-  --college-inkarbor: #1f1f1f;
-  --college-inkarbor-soft: #111111;
-  --college-inkarbor-ui: #d2cbc0;
+  --paper-bg: #d7c197;
+  --paper-dark: #8a6a3b;
 
-  --bg-body-gradient: radial-gradient(
-    ellipse at 50% -15%,
-    #1a1a23,
-    var(--bg-panel) 45%,
-    var(--bg-main) 100%
-  );
-  --bg-card: rgba(32, 32, 42, 0.8);
+  --college-silvalean: #c7c0ad;
+  --college-silvalean-soft: #98927f;
+  --college-flaremarch: #b44b43;
+  --college-flaremarch-soft: #7d3733;
+  --college-verdance: #6f8d55;
+  --college-verdance-soft: #526c41;
+  --college-cerulink: #4d7395;
+  --college-cerulink-soft: #32516d;
+  --college-inkarbor: #725173;
+  --college-inkarbor-soft: #4f3a58;
+  --college-inkarbor-ui: #b7a6bb;
+
+  --bg-body-gradient:
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.08), transparent 28%),
+    radial-gradient(circle at 50% 25%, rgba(12, 29, 42, 0.88), transparent 52%),
+    linear-gradient(180deg, #0a1620 0%, #08131a 58%, #050b10 100%);
+  --bg-card: rgba(17, 26, 36, 0.9);
   --text-primary: var(--text-main);
   --text-secondary: var(--text-muted);
   --accent-color: var(--accent-main);
 
   /* 尺寸與特效參數 */
-  --radius-card: 16px;
-  --radius-btn: 50px;
-  --shadow-card: 0 10px 40px -10px rgba(0, 0, 0, 0.7); /* 更柔和但深邃的陰影 */
+  --radius-card: 12px;
+  --radius-btn: 6px;
+  --shadow-card: 0 18px 48px rgba(0, 0, 0, 0.38);
+  --shadow-paper:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -2px 0 rgba(88, 62, 31, 0.28),
+    0 8px 20px rgba(0, 0, 0, 0.34);
 
-  /* 玻璃邊框：上方亮、下方暗，模擬光照 */
+  /* 典藏邊框：細金框 + 低調內陰影 */
   --border-glass: 1px solid var(--border-soft);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: all 0.15s ease;
@@ -91,30 +98,51 @@ html {
 /* --- 全局設定 --- */
 body {
   background: var(--bg-body-gradient);
-  background-size: 400% 400%;
-  animation: gradientBG 36s ease infinite;
   color: var(--text-primary);
   font-family: var(--font-main);
   line-height: 1.8;
   margin: 0;
   padding: 20px;
   min-height: 100vh;
+  position: relative;
   overflow-x: hidden;
 }
 
-@keyframes gradientBG {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E"),
+    linear-gradient(
+      180deg,
+      rgba(201, 167, 106, 0.05),
+      transparent 18%,
+      transparent 82%,
+      rgba(201, 167, 106, 0.04)
+    ),
+    linear-gradient(90deg, rgba(201, 167, 106, 0.045) 1px, transparent 1px),
+    linear-gradient(rgba(201, 167, 106, 0.035) 1px, transparent 1px);
+  background-size: 200px 200px, auto, 64px 100%, 100% 64px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* --- 容器設計 (升級版玻璃擬態) --- */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 18%,
+    transparent 0 36%,
+    rgba(0, 0, 0, 0.18) 72%,
+    rgba(0, 0, 0, 0.44) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --- 容器設計（古書卡片） --- */
 .container,
 .res {
   max-width: 800px;
@@ -122,10 +150,9 @@ body {
   padding: 40px;
 
   background: var(--bg-card);
-  backdrop-filter: blur(16px); /* 加強模糊 */
-  -webkit-backdrop-filter: blur(16px);
-  border: var(--border-glass);
-  border-top: 1px solid var(--border-accent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-soft);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
 
@@ -134,36 +161,191 @@ body {
   z-index: 10;
 }
 
-/* 頂部裝飾光條 */
+/* 細金框角與上下線 */
 .container::before,
 .res::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
+  inset: 12px 14px auto 14px;
+  height: 1px;
   background: linear-gradient(
     90deg,
     transparent,
-    var(--accent-color),
+    rgba(201, 167, 106, 0.7),
     transparent
   );
   opacity: 0.8;
-  box-shadow: 0 0 15px var(--accent-color);
+  pointer-events: none;
+}
+
+.container::after,
+.res::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px 12px 14px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 167, 106, 0.44),
+    transparent
+  );
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.container > .fade-in:first-child {
+  position: relative;
+}
+
+.container > .fade-in:first-child::before {
+  content: "";
+  position: absolute;
+  inset: 4px 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 167, 106, 0.42),
+    transparent
+  );
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.container > .fade-in:first-child::after {
+  content: "";
+  position: absolute;
+  inset: 18px 12px auto;
+  height: 220px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(201, 167, 106, 0.1), transparent 10%),
+    radial-gradient(circle at 82% 22%, rgba(201, 167, 106, 0.08), transparent 9%),
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.12), transparent 24%),
+    radial-gradient(circle at 50% 50%, transparent 0 43%, rgba(201, 167, 106, 0.12) 44% 44.3%, transparent 45%),
+    radial-gradient(circle at 50% 50%, transparent 0 61%, rgba(201, 167, 106, 0.08) 62% 62.2%, transparent 63%),
+    linear-gradient(0deg, transparent 49.7%, rgba(201, 167, 106, 0.08) 50%, transparent 50.3%),
+    linear-gradient(90deg, transparent 49.7%, rgba(201, 167, 106, 0.08) 50%, transparent 50.3%);
+  opacity: 0.24;
+  pointer-events: none;
+}
+
+.container > .fade-in:first-child > h1:first-child {
+  position: relative;
+  z-index: 1;
+}
+
+figure.fig {
+  position: relative;
+  margin: 0 0 2rem;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.14)),
+    rgba(16, 25, 35, 0.92);
+  box-shadow:
+    inset 0 0 28px rgba(0, 0, 0, 0.26),
+    0 16px 32px rgba(0, 0, 0, 0.2);
+}
+
+figure.fig::before,
+figure.fig::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+figure.fig::before {
+  border: 1px solid rgba(201, 167, 106, 0.18);
+}
+
+figure.fig::after {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 32%, rgba(201, 167, 106, 0.16) 33% 33.4%, transparent 34%),
+    linear-gradient(0deg, transparent 49.6%, rgba(201, 167, 106, 0.1) 50%, transparent 50.4%),
+    linear-gradient(90deg, transparent 49.6%, rgba(201, 167, 106, 0.1) 50%, transparent 50.4%);
+  opacity: 0.35;
+}
+
+figure.fig img {
+  display: block;
+  border-radius: 10px;
+  border: 1px solid rgba(201, 167, 106, 0.16);
+}
+
+.index_desc {
+  position: relative;
+}
+
+.index_desc > div {
+  position: relative;
+  margin: 24px 0;
+  padding: 22px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.12)),
+    rgba(16, 25, 35, 0.88) !important;
+  box-shadow:
+    inset 0 0 24px rgba(0, 0, 0, 0.22),
+    0 12px 22px rgba(0, 0, 0, 0.16);
+}
+
+.index_desc > div::before,
+.index_desc > div::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 167, 106, 0.22),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.index_desc > div::before {
+  top: 12px;
+}
+
+.index_desc > div::after {
+  bottom: 12px;
 }
 
 /* --- 文字與標題 --- */
 h1,
+h2,,
+.qa,
+.section-label,
+.result-winner-name {
+  font-family: var(--font-serif);
+}
+
+h1,
 h2,
+.res_title
 .res_title {
-  color: var(--accent-color);
+p {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+
+.qa {
+  font-size: 1.3rem;
+  color: #f7ecd5;
   text-align: center;
-  margin-bottom: 2rem;
-  font-weight: 400;
-  font-size: clamp(1.4rem, 4vw, 2rem);
-  letter-spacing: 0.1em;
-  text-shadow: 0 0 10px var(--accent-glow);
+  letter-spacing: 0.05em;16);
 }
 
 .qa,
@@ -251,18 +433,148 @@ legend {
 .choice-questions {
   margin-bottom: 2.5rem;
   padding: 2rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.12)),
+    var(--bg-panel);
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  box-shadow:
+    inset 0 0 28px rgba(0, 0, 0, 0.28),
+    0 12px 24px rgba(0, 0, 0, 0.16);
   transition: var(--transition);
 }
 
 .question:hover,
 .choice-questions:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: var(--border-accent);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-  transform: translateY(-3px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.1)),
+    var(--bg-panel);
+  border-color: var(--border-strong);
+  box-shadow:
+    inset 0 0 26px rgba(0, 0, 0, 0.3),
+    0 12px 24px rgba(0, 0, 0, 0.22);
+  transform: translateY(-2px);
+}
+
+#chapter-transition {
+  position: relative;
+  padding: 14px 12px 10px;
+  margin-bottom: 8px;
+}
+
+#chapter-transition::before,
+#chapter-transition::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transpar0px 20px 20px;
+  margin-bottom: 24px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: flex !important;
+  flex-direction: column;
+}
+
+#progress-area .progress-text {
+  order: 1;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  margin: 0 0 12px;
+}
+
+#progress-area .progress-bar-track {
+  order: 2;
+  height: 2px;
+  background: rgba(201, 167, 106, 0.15);
+  border: none;
+  border-ra10px 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+#question-card::before,
+#question-card::after {
+  display: none;
+}
+
+#question-card .qa {
+  margin: 10px auto 40px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  color: #e8dbc0;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  line-height: 1.5t {
+  order: 3;
+  margin-top: 10px
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.08), transparent 32%),
+    rgba(17, 26, 36, 0.88);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.14);
+}
+
+#progress-area .progress-bar-track {
+  height: 7px;
+  background: rgba(201, 167, 106, 0.12);
+  border: 1px solid rgba(201, 167, 106, 0.12);
+}
+
+#progress-area .progress-bar-fill {
+  background: linear-gradient(90deg, #8b6a3e, #ead8ac 22%, #c9a76a 55%, #ead8ac 82%, #8b6a3e);
+  box-shadow: 0 0 10px rgba(201, 167, 106, 0.2);
+}
+
+#question-card {
+  position: relative;
+  padding: 22px 20px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.06), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.1)),
+    rgba(17, 26, 36, 0.96);
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.18),
+    0 14px 24px rgba(0, 0, 0, 0.14);
+}
+
+#question-card::before,
+#question-card::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+#question-card::before {
+  border: 1px solid rgba(201, 167, 106, 0.16);
+}
+
+#question-card::after {
+  background:
+    radial-gradient(circle at 0 50%, rgba(201, 167, 106, 0.16), transparent 12%),
+    radial-gradient(circle at 100% 50%, rgba(201, 167, 106, 0.16), transparent 12%);
+  opacity: 0.5;
+}
+
+#question-card .qa {
+  margin-top: 0;
+  padding: 12px 14px;
+  border-left: 3px solid rgba(201, 167, 106, 0.34);
+  background: rgba(255, 255, 255, 0.015);
+  border-radius: 0 8px 8px 0;
 }
 
 /* --- 選項按鈕 (Label) --- */
@@ -274,24 +586,30 @@ label {
   border-radius: 10px;
   cursor: pointer;
   transition: var(--transition);
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.12)),
+    rgba(16, 25, 35, 0.9);
+  border: 1px solid rgba(201, 167, 106, 0.14);
   color: var(--text-secondary);
 }
 
 label:hover {
-  background-color: rgba(216, 185, 106, 0.08);
+  background:
+    linear-gradient(90deg, rgba(201, 167, 106, 0.12), transparent 42%),
+    rgba(16, 25, 35, 0.96);
   color: #fff;
   padding-left: 28px;
-  border-color: var(--accent-color);
+  border-color: rgba(201, 167, 106, 0.4);
   border-left: 4px solid var(--accent-color);
 }
 
 /* 選中狀態 */
 label:has(input:checked) {
-  background: rgba(216, 185, 106, 0.16);
-  border: 1px solid var(--accent-color);
-  box-shadow: 0 0 20px rgba(216, 185, 106, 0.1) inset;
+  background:
+    linear-gradient(90deg, rgba(201, 167, 106, 0.16), transparent 44%),
+    rgba(16, 25, 35, 0.98);
+  border: 1px solid rgba(201, 167, 106, 0.56);
+  box-shadow: 0 0 18px rgba(201, 167, 106, 0.08) inset;
   color: #fff;
 }
 
@@ -319,9 +637,11 @@ button,
   max-width: 300px;
   margin: 0;
   padding: 16px 24px;
-  background: transparent;
-  color: var(--accent-color);
-  border: 1px solid var(--accent-color);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 42%),
+    linear-gradient(90deg, #b9955d, #ead8ac 18%, #d5b578 50%, #ead8ac 82%, #9e743e);
+  color: #2e2113;
+  border: 1px solid rgba(95, 63, 31, 0.68);
   border-radius: var(--radius-btn);
   font-size: 1.1rem;
   font-weight: bold;
@@ -330,18 +650,20 @@ button,
   transition: var(--transition);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  letter-spacing: 2px;
+  box-shadow: var(--shadow-paper);
+  letter-spacing: 0.12em;
 }
 
 button:hover,
 .index_button:hover,
 .res_btn:hover {
-  background: var(--accent-color);
-  color: #1c1917;
-  box-shadow: 0 0 40px var(--accent-glow);
+  filter: brightness(1.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 18px rgba(201, 167, 106, 0.22),
+    0 8px 22px rgba(0, 0, 0, 0.42);
   transform: translateY(-3px);
-  border-color: transparent;
+  border-color: rgba(95, 63, 31, 0.78);
   z-index: 10;
   animation: none;
 }
@@ -349,7 +671,7 @@ button:hover,
 button:active,
 .index_button:active,
 .res_btn:active {
-  transform: translateY(1px) scale(0.98); /* 點擊回饋 */
+  transform: translateY(1px) scale(0.98);
   box-shadow: 0 0 10px var(--accent-glow);
 }
 
@@ -386,21 +708,24 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin: 30px 0;
-  background: rgba(0, 0, 0, 0.4);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.14)),
+    rgba(16, 25, 35, 0.9);
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.18);
 }
 th,
 td {
   padding: 18px 8px;
   text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(201, 167, 106, 0.12);
   color: var(--text-primary);
   transition: background 0.3s;
 }
 th {
-  background-color: rgba(230, 194, 136, 0.1);
+  background-color: rgba(201, 167, 106, 0.12);
   color: var(--accent-color);
   font-weight: bold;
   font-size: 0.95rem;
@@ -408,7 +733,7 @@ th {
 }
 /* 表格懸停效果 */
 tr:hover td {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(201, 167, 106, 0.04);
   color: #fff;
 }
 #top-academy {
@@ -421,131 +746,116 @@ tr:hover td {
 
 /* 🔴 紅馳學院：烈焰與霓虹殘影 */
 body.theme-red {
-  --bg-body-gradient: radial-gradient(
-    ellipse at 80% 10%,
-    #2a151a,
-    #201218,
-    #131017,
-    var(--bg-main)
-  );
-  --bg-card: rgba(35, 24, 28, 0.82);
+  --bg-body-gradient:
+    radial-gradient(circle at 80% 10%, rgba(180, 75, 67, 0.12), transparent 28%),
+    radial-gradient(circle at 50% 24%, rgba(12, 29, 42, 0.9), transparent 52%),
+    linear-gradient(180deg, #0a1620 0%, #08131a 58%, #050b10 100%);
+  --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-flaremarch);
-  --accent-glow: rgba(216, 95, 95, 0.28);
+  --accent-glow: rgba(180, 75, 67, 0.18);
 }
 
 /* 🟢 綠躍學院：詭異螢光與異質生命體 */
 body.theme-green {
-  --bg-body-gradient: radial-gradient(
-    ellipse at 50% -10%,
-    #1e2a1a,
-    #172117,
-    #111713,
-    var(--bg-main)
-  );
-  --bg-card: rgba(27, 34, 26, 0.85);
+  --bg-body-gradient:
+    radial-gradient(circle at 50% -10%, rgba(111, 141, 85, 0.12), transparent 28%),
+    radial-gradient(circle at 50% 24%, rgba(12, 29, 42, 0.9), transparent 52%),
+    linear-gradient(180deg, #0a1620 0%, #08131a 58%, #050b10 100%);
+  --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-verdance);
-  --accent-glow: rgba(145, 182, 111, 0.26);
+  --accent-glow: rgba(111, 141, 85, 0.18);
 }
 
 /* 🔵 藍行學院：深淵邏輯矩陣 */
 body.theme-blue {
-  --bg-body-gradient: radial-gradient(
-    ellipse at 12% 40%,
-    #1b2536,
-    #141d2d,
-    #111825,
-    var(--bg-main)
-  );
-  --bg-card: rgba(24, 31, 44, 0.88);
+  --bg-body-gradient:
+    radial-gradient(circle at 12% 40%, rgba(77, 115, 149, 0.12), transparent 28%),
+    radial-gradient(circle at 50% 24%, rgba(12, 29, 42, 0.9), transparent 52%),
+    linear-gradient(180deg, #0a1620 0%, #08131a 58%, #050b10 100%);
+  --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-cerulink);
-  --accent-glow: rgba(79, 120, 168, 0.26);
+  --accent-glow: rgba(77, 115, 149, 0.18);
 }
 
 /* ⚫ 墨佇學院：水墨深淵與紙本靈魂 */
 body.theme-black {
-  --bg-body-gradient: radial-gradient(
-    ellipse at 55% 25%,
-    #1f1f1f,
-    #171717,
-    #101010,
-    var(--bg-main)
-  );
-  --bg-card: rgba(22, 22, 22, 0.9);
+  --bg-body-gradient:
+    radial-gradient(circle at 55% 25%, rgba(114, 81, 115, 0.1), transparent 28%),
+    radial-gradient(circle at 50% 24%, rgba(12, 29, 42, 0.9), transparent 52%),
+    linear-gradient(180deg, #0a1620 0%, #08131a 58%, #050b10 100%);
+  --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-inkarbor-ui);
-  --accent-glow: rgba(170, 164, 152, 0.2);
-  --text-primary: #e5dfd5;
-  --text-secondary: #b3a89d;
+  --accent-glow: rgba(114, 81, 115, 0.16);
+  --text-primary: #e5ddd0;
+  --text-secondary: #b9ae9d;
 }
 
 /* ⚪ 銀倚學院：月光鈦金屬 */
 body.theme-white {
-  --bg-body-gradient: radial-gradient(
-    ellipse at 85% 10%,
-    #242226,
-    #1c1b20,
-    #151418,
-    var(--bg-main)
-  );
-  --bg-card: rgba(36, 34, 38, 0.82);
+  --bg-body-gradient:
+    radial-gradient(circle at 85% 10%, rgba(201, 195, 183, 0.1), transparent 28%),
+    radial-gradient(circle at 50% 24%, rgba(12, 29, 42, 0.9), transparent 52%),
+    linear-gradient(180deg, #0a1620 0%, #08131a 58%, #050b10 100%);
+  --bg-card: rgba(17, 26, 36, 0.93);
   --accent-color: var(--college-silvalean);
-  --accent-glow: rgba(201, 195, 183, 0.26);
-  --text-primary: #f0ece2;
-  --text-secondary: #b9b0a0;
+  --accent-glow: rgba(201, 195, 183, 0.16);
+  --text-primary: #f0e8d8;
+  --text-secondary: #bdb29f;
 }
 /* --- 學院專屬按鈕配色 --- */
 .res_btn.btn-red {
   border-color: var(--college-flaremarch);
   color: var(--college-flaremarch);
-  box-shadow: 0 0 10px rgba(216, 95, 95, 0.2);
+  box-shadow: 0 0 10px rgba(180, 75, 67, 0.16);
 }
 .res_btn.btn-red:hover {
   background-color: var(--college-flaremarch);
-  color: #000;
-  box-shadow: 0 0 24px rgba(216, 95, 95, 0.4);
+  color: #1a120c;
+  box-shadow: 0 0 24px rgba(180, 75, 67, 0.28);
 }
 
 .res_btn.btn-green {
   border-color: var(--college-verdance);
   color: var(--college-verdance);
-  box-shadow: 0 0 10px rgba(145, 182, 111, 0.2);
+  box-shadow: 0 0 10px rgba(111, 141, 85, 0.16);
 }
 .res_btn.btn-green:hover {
   background-color: var(--college-verdance);
-  color: #000;
-  box-shadow: 0 0 24px rgba(145, 182, 111, 0.4);
+  color: #1a120c;
+  box-shadow: 0 0 24px rgba(111, 141, 85, 0.28);
 }
 
 .res_btn.btn-blue {
   border-color: var(--college-cerulink);
   color: var(--college-cerulink);
-  box-shadow: 0 0 10px rgba(79, 120, 168, 0.2);
+  box-shadow: 0 0 10px rgba(77, 115, 149, 0.16);
 }
 .res_btn.btn-blue:hover {
   background-color: var(--college-cerulink);
-  color: #000;
-  box-shadow: 0 0 24px rgba(79, 120, 168, 0.4);
+  color: #1a120c;
+  box-shadow: 0 0 24px rgba(77, 115, 149, 0.28);
 }
 
 .res_btn.btn-black {
   border-color: var(--college-inkarbor-ui);
   color: var(--college-inkarbor-ui);
-  box-shadow: 0 0 10px rgba(125, 91, 133, 0.2);
+  box-shadow: 0 0 10px rgba(114, 81, 115, 0.16);
 }
 .res_btn.btn-black:hover {
   background-color: var(--college-inkarbor-ui);
-  color: #000;
-  box-shadow: 0 0 24px rgba(125, 91, 133, 0.4);
+  color: #1a120c;
+  box-shadow: 0 0 24px rgba(114, 81, 115, 0.28);
 }
 
 .res_btn.btn-white {
   border-color: var(--college-silvalean);
   color: var(--college-silvalean);
-  box-shadow: 0 0 10px rgba(201, 195, 183, 0.2);
+  box-shadow: 0 0 10px rgba(201, 195, 183, 0.16);
 }
 .res_btn.btn-white:hover {
   background-color: var(--college-silvalean);
-  color: #000;
-  box-shadow: 0 0 24px rgba(201, 195, 183, 0.4);
+  color: #1a120c;
+  box-shadow: 0 0 24px rgba(201, 195, 183, 0.28);
 }
 
 /* --- 動態背景特效 --- */
@@ -569,10 +879,10 @@ body.theme-white {
   height: 12px;
   background: linear-gradient(
     180deg,
-    rgba(242, 238, 228, 0.09),
-    rgba(216, 185, 106, 0.03)
+    rgba(232, 219, 192, 0.08),
+    rgba(201, 167, 106, 0.03)
   );
-  border: 1px solid rgba(242, 238, 228, 0.08);
+  border: 1px solid rgba(201, 167, 106, 0.08);
   animation: floatUp 28s linear infinite;
   bottom: -150px;
   border-radius: 2px;
@@ -670,8 +980,8 @@ body.theme-white {
 .lang-btn {
   padding: 4px 12px;
   border-radius: 20px;
-  border: 1px solid var(--accent-color);
-  background: transparent;
+  border: 1px solid rgba(201, 167, 106, 0.35);
+  background: rgba(16, 25, 35, 0.66);
   color: var(--accent-color);
   cursor: pointer;
   font-size: 0.85rem;
@@ -683,16 +993,17 @@ body.theme-white {
 }
 .lang-btn.active,
 .lang-btn:hover {
-  background: var(--accent-color);
-  color: #1c1917;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 42%),
+    linear-gradient(90deg, #b9955d, #ead8ac 18%, #d5b578 50%, #ead8ac 82%, #9e743e);
+  color: #2e2113;
   transform: none;
-  box-shadow: none;
+  box-shadow: var(--shadow-paper);
 }
 
 /* ── 進度條 ───────────────────────────────────────────────────────────── */
 .progress-bar-track {
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(201, 167, 106, 0.14);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -839,16 +1150,24 @@ body.theme-white {
 }
 
 /* ── 一題一題選項按鈕 ────────────────────────────────────────────────── */
+#options-container {
+  counter-reset: quiz-option;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .quiz-option-btn {
+  counter-increment: quiz-option;
   display: block;
   width: 100%;
   text-align: left;
-  padding: 14px 20px;
-  margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 18px 24px 18px 64px;
+  margin: 0;
+  background: rgba(8, 14, 20, 0.8);
   color: var(--text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border: 1px solid rgba(201, 167, 106, 0.24);
+  border-radius: 12px;
   cursor: pointer;
   font-size: 1rem;
   line-height: 1.6;
@@ -856,19 +1175,59 @@ body.theme-white {
   animation: none;
   letter-spacing: 0;
   max-width: 100%;
+  position: relative;
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.4),
+    0 8px 20px rgba(0, 0, 0, 0.3);
 }
+
+.quiz-option-btn::before {
+  content: counter(quiz-option, upper-alpha);
+  font-family: var(--font-serif);
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 1 L20 39 M1 20 L39 20M6.5 6.5 L33.5 33.5 M6.5 33.5 L33.5 6.5' stroke='rgba(201,167,106,0.15)' stroke-width='1'/%3E%3Ccircle cx='20' cy='20' r='18' fill='none' stroke='rgba(201,167,106,0.5)' stroke-width='1.5'/%3E%3Ccircle cx='20' cy='20' r='14' fill='rgba(10,15,22,0.8)' stroke='rgba(201,167,106,0.3)' stroke-width='1' stroke-dasharray='3 2'/%3E%3C/svg%3E") no-repeat center center;
+  background-size: contain;
+  text-shadow: 0 0 4px #000;
+}
+
 .quiz-option-btn:hover:not(:disabled) {
-  background: rgba(216, 185, 106, 0.08);
-  color: #fff;
-  border-color: var(--accent-color);
-  box-shadow: inset 4px 0 0 var(--accent-color);
+  background: rgba(201, 167, 106, 0.04);
+  color: #f7ecd5;
+  border-color: rgba(201, 167, 106, 0.4);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.quiz-option-btn.selected {
+  background: rgba(201, 167, 106, 0.08);
+  border: 1px solid rgba(201, 167, 106, 0.8);
+  color: #f7ecd5;
+  font-weight: bold;
+  box-shadow:
+    0 0 15px rgba(201, 167, 106, 0.15),
+    inset 0 0 20px rgba(0, 0, 0, 0.4);
   transform: none;
 }
-.quiz-option-btn.selected {
-  background: rgba(216, 185, 106, 0.18);
-  border: 1px solid var(--accent-color);
+
+.quiz-option-btn.selected::before {
   color: #fff;
-  font-weight: bold;
+  text-shadow: 0 0 8px var(--accent-color);
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 1 L20 39 M1 20 L39 20' stroke='rgba(201,167,106,0.3)' stroke-width='1.5'/%3E%3Ccircle cx='20' cy='20' r='18' fill='none' stroke='rgba(201,167,106,0.8)' stroke-width='2'/%3E%3Ccircle cx='20' cy='20' r='14' fill='rgba(201,167,106,0.2)' stroke='rgba(201,167,106,0.6)' stroke-width='1.5' stroke-dasharray='3 2'/%3E%3C/svg%3E") no-repeat center center;
+  background-size: contain;
 }
 .quiz-option-btn:disabled {
   cursor: default;
@@ -906,7 +1265,7 @@ body.theme-white {
 .section-badge {
   display: inline-block;
   padding: 4px 18px;
-  border: 1px solid var(--accent-color);
+  border: 1px solid rgba(201, 167, 106, 0.4);
   border-radius: 30px;
   font-size: 0.75rem;
   letter-spacing: 3px;
@@ -921,9 +1280,11 @@ body.theme-white {
 
 .quiz-section-card {
   margin-bottom: 16px;
-  border: 1px solid rgba(230, 194, 136, 0.2);
+  border: 1px solid rgba(201, 167, 106, 0.18);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.12)),
+    rgba(16, 25, 35, 0.9);
 }
 
 /* ── 部分開始 / 繼續按鈕（覆蓋全局 max-width） ───────────────────────── */
@@ -939,14 +1300,119 @@ body.theme-white {
 .result-winner-box {
   text-align: center;
   margin: 28px 0;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 24px 20px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.06), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0.14)),
+    rgba(17, 26, 36, 0.95);
+  padding: 24px 20px 20px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(201, 167, 106, 0.26);
+  box-shadow:
+    inset 0 0 22px rgba(0, 0, 0, 0.14),
+    0 12px 22px rgba(0, 0, 0, 0.14);
+  position: relative;
+}
+
+.result-winner-box::before,
+.result-winner-box::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 167, 106, 0.28),
+    transparent
+  );
+}
+
+.result-winner-box::before {
+  top: 12px;
+}
+
+.result-winner-box::after {
+  bottom: 12px;
 }
 
 .result-reveal-stage {
   position: relative;
+}
+
+.result-report-wrap {
+  position: relative;
+}
+
+.result-report-wrap > h2,
+.result-report-wrap > h3 {
+  text-align: center;
+}
+
+.result-report-wrap > h2:first-child {
+  position: relative;
+  margin-top: 18px;
+}
+
+.result-report-wrap > h2:first-child::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -10px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 167, 106, 0.32),
+    transparent
+  );
+}
+
+.result-report-wrap > h2:last-of-type,
+.result-report-wrap > h3 {
+  letter-spacing: 0.12em;
+}
+
+.result-report-wrap > .score-chart-container {
+  position: relative;
+  border-top: 1px solid rgba(201, 167, 106, 0.18);
+  padding-top: 18px;
+}
+
+.result-report-wrap .score-chart-container {
+  border-color: rgba(201, 167, 106, 0.18);
+}
+
+.result-report-wrap .academy-bookshelf-container {
+  margin-top: 10px;
+}
+
+.result-report-wrap .result-actions-grid {
+  margin-top: 8px;
+}
+
+.result-report-wrap .action-card {
+  min-height: 72px;
+  border-radius: 12px;
+  border-color: rgba(201, 167, 106, 0.24);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 167, 106, 0.08), transparent 34%),
+    linear-gradient(160deg, rgba(35, 29, 24, 0.84), rgba(23, 18, 15, 0.92));
+}
+
+.result-report-wrap .action-card:hover {
+  border-color: rgba(201, 167, 106, 0.42);
+}
+
+.result-report-wrap .result-actions-row,
+.result-report-wrap .result-actions-row-two,
+.result-report-wrap .result-actions-row-single {
+  gap: 12px;
+}
+
+.result-report-wrap .result-actions-row-single .action-card {
+  min-height: 64px;
 }
 
 .result-reveal-skip {
@@ -1429,7 +1895,9 @@ body.theme-white {
 .result-note-box {
   border-left: 4px solid var(--accent-color);
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.04);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.14)),
+    rgba(16, 25, 35, 0.9);
   border-radius: 0 10px 10px 0;
   margin-bottom: 30px;
 }
@@ -1453,7 +1921,7 @@ body.theme-white {
 }
 .result-hr {
   border: none;
-  border-top: 2px solid var(--accent-color);
+  border-top: 1px solid rgba(201, 167, 106, 0.34);
   margin-bottom: 20px;
 }
 
@@ -1492,6 +1960,44 @@ a:focus-visible {
     font-size: 0.76rem;
     line-height: 1.3;
     text-align: left;
+  }
+  .container > .fade-in:first-child::after {
+    inset: 14px 8px auto;
+    height: 180px;
+    opacity: 0.18;
+  }
+  figure.fig {
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .index_desc > div {
+    padding: 18px 16px;
+  }
+  #progress-area {
+    padding: 10px 10px 16px;
+  }
+  #question-card {
+    padding: 0;
+  }
+  #question-card .qa {
+    padding: 10px;
+    font-size: 1.15rem;
+  }
+  .quiz-option-btn {
+    padding: 16px 16px 16px 56px;
+    line-height: 1.55;
+  }
+  .quiz-option-btn::before {
+    left: 16px;
+    width: 24px;
+    height: 24px;
+    font-size: 0.85rem;
+  }
+  .result-winner-box {
+    padding: 22px 16px 18px;
+  }
+  .result-report-wrap .action-card {
+    min-height: 62px;
   }
   .progress-hint {
     font-size: 0.82rem;
