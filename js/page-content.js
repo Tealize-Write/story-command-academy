@@ -64,6 +64,12 @@
           <p id="answer-feedback" class="answer-feedback" aria-live="polite"></p>
           <div id="options-container"></div>
         </div>
+        <section id="tie-decision" class="tie-decision" style="display:none;" aria-labelledby="tie-title">
+          <h2 id="tie-title" tabindex="-1"></h2>
+          <p id="tie-description"></p>
+          <div id="tie-options"></div>
+          <button id="tie-auto" class="res_btn" type="button"></button>
+        </section>
       </div>
     `,
 

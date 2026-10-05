@@ -84,6 +84,11 @@ html {
   /* 尺寸與特效參數 */
   --radius-card: 12px;
   --radius-btn: 6px;
+  --button-primary-bg: #ccb884;
+  --button-primary-hover: #ddcba5;
+  --button-primary-text: #20252b;
+  --button-secondary-bg: #14212c;
+  --button-secondary-hover: #1b2d3b;
   --shadow-card: 0 18px 48px rgba(0, 0, 0, 0.38);
   --shadow-paper:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
@@ -477,7 +482,7 @@ legend {
   background: transparent;
   border: none;
   box-shadow: none;
-  display: flex !important;
+  display: flex;
   flex-direction: column;
 }
 
@@ -787,9 +792,9 @@ body.theme-black {
     radial-gradient(circle at 50% 24%, rgba(12, 29, 42, 0.9), transparent 52%),
     linear-gradient(180deg, #070b0f 0%, #05070a 58%, #020304 100%);
   --bg-card: rgba(11, 14, 18, 0.95);
-  --accent-color: #3a3434;
+  --accent-color: var(--college-inkarbor-ui);
   --accent-glow: rgba(141, 130, 116, 0.24);
-  --result-accent-rgb: 58, 52, 52;
+  --result-accent-rgb: 183, 166, 187;
   --text-primary: #e5ddd0;
   --text-secondary: #b5ab9d;
 }
@@ -2134,6 +2139,262 @@ a:focus-visible {
   .result-reveal-skip {
     margin-right: 0;
   }
+}
+
+.tie-decision {
+  padding: 18px 0;
+}
+.tie-decision h2 {
+  color: var(--accent-color);
+}
+#tie-options {
+  display: grid;
+  gap: 14px;
+  counter-reset: quiz-option;
+  margin: 24px 0;
+}
+.result-explore {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--border-accent);
+  border-radius: 10px;
+}
+.result-explore summary {
+  cursor: pointer;
+  color: var(--accent-color);
+  font-weight: bold;
+}
+.score-description {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+.academy-book-item.is-negative .academy-score-book {
+  opacity: 0.72;
+}
+.score-comparison {
+  margin-top: 24px;
+}
+.score-comparison-row,
+.score-comparison-axis {
+  display: grid;
+  grid-template-columns: minmax(62px, 1fr) minmax(0, 3fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0;
+}
+.score-comparison-name {
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+.score-comparison-value {
+  min-width: 46px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.score-comparison-track {
+  position: relative;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+}
+.score-comparison-track::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: var(--score-zero);
+  border-left: 1px solid #e7ddc9;
+}
+.score-comparison-fill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  background: var(--score-color);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+.score-comparison-fill.is-negative {
+  background: repeating-linear-gradient(135deg, var(--score-color) 0 3px, #b0a38c 3px 4px);
+}
+.score-comparison-axis-labels {
+  grid-column: 2;
+  position: relative;
+  height: 28px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+.score-comparison-axis-labels > span {
+  position: absolute;
+  left: 0;
+}
+.score-comparison-axis-labels .score-zero-label {
+  left: var(--score-zero);
+  white-space: nowrap;
+}
+.score-comparison-axis-labels .score-max-label {
+  left: auto;
+  right: 0;
+}
+
+/* ── 霧面學院視覺：清楚的主次操作、素面卡片 ─────────────────────── */
+.container > .fade-in:first-child::after,
+figure.fig::after,
+#question-card::before,
+#question-card::after,
+.result-reveal-stage::before,
+#progress-area .progress-bar-track::before,
+#progress-area .progress-bar-track::after,
+.progress-bar-fill::after {
+  content: none;
+}
+
+figure.fig,
+#question-card,
+.res_ack,
+.result-winner-box {
+  background: var(--bg-card-solid);
+  box-shadow: none;
+}
+.index_desc > div {
+  background: var(--bg-card-solid) !important;
+  box-shadow: none;
+}
+.quiz-section-card,
+.score-chart-container {
+  background: var(--bg-panel);
+}
+#question-card .qa {
+  background: #182632;
+}
+#progress-area .progress-bar-fill {
+  background: var(--accent-main);
+  box-shadow: none;
+}
+
+button,
+.index_button,
+.res_btn {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  border-color: var(--button-primary-bg);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.16);
+  letter-spacing: 0.04em;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+button:hover:not(:disabled),
+.index_button:hover,
+.res_btn:hover {
+  background: var(--button-primary-hover);
+  border-color: var(--button-primary-hover);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.2);
+  filter: none;
+  transform: translateY(-1px);
+}
+button:active,
+.index_button:active,
+.res_btn:active {
+  transform: none;
+  box-shadow: none;
+}
+button:focus-visible,
+.index_button:focus-visible,
+.res_btn:focus-visible {
+  box-shadow: none;
+}
+
+.lang-btn {
+  background: var(--button-secondary-bg);
+  color: var(--text-primary);
+  border-color: var(--border-soft);
+  box-shadow: none;
+}
+.lang-btn.active,
+.lang-btn:hover {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  box-shadow: none;
+  transform: none;
+}
+
+.quiz-option-btn {
+  background: var(--button-secondary-bg);
+  color: var(--text-primary);
+  border-color: var(--border-soft);
+  box-shadow: none;
+}
+.quiz-option-btn::before {
+  border-radius: 6px;
+  border: 1px solid var(--border-soft);
+  background: #1b2b37;
+  text-shadow: none;
+}
+.quiz-option-btn:hover:not(:disabled) {
+  background: var(--button-secondary-hover);
+  border-color: var(--border-strong);
+  box-shadow: none;
+  transform: none;
+}
+.quiz-option-btn.selected {
+  background: #25332e;
+  border-color: var(--accent-main);
+  box-shadow: none;
+}
+.quiz-option-btn.selected::before {
+  background: var(--button-primary-bg);
+  border-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  text-shadow: none;
+}
+.quiz-option-btn.selected:disabled {
+  opacity: 1;
+}
+
+.action-card,
+.result-report-wrap .action-card {
+  background: var(--button-secondary-bg);
+  color: var(--text-primary);
+  border-color: var(--border-soft);
+  box-shadow: none;
+}
+.action-card:hover,
+.result-report-wrap .action-card:hover {
+  background: var(--button-secondary-hover);
+  border-color: var(--border-strong);
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+.result-report-wrap .action-card.primary-action {
+  background: var(--button-primary-bg);
+  border-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+.result-report-wrap .action-card.primary-action:hover {
+  background: var(--button-primary-hover);
+  border-color: var(--button-primary-hover);
+}
+
+.result-winner-name,
+body.theme-black .result-winner-name {
+  background: none;
+  color: var(--text-primary);
+  -webkit-text-fill-color: currentColor;
+  animation: none;
+  text-shadow: none;
+}
+.res_ack-title,
+.score-chart-container h3,
+.result-reveal-stage h2,
+.result-reveal-stage h3,
+.result-reveal-stage .res_title {
+  color: var(--text-primary);
+  text-shadow: none;
+}
+
+.tie-decision > p {
+  text-align: left;
 }
 
 /* ── prefers-reduced-motion ─────────────────────────────────────────── */

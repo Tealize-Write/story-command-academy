@@ -59,7 +59,7 @@ window.UI_TRANSLATIONS = {
     resultTitle: "創作特質測驗結果",
     resultTopLabel: "系統判定，你的創作特質歸屬：",
     resultBgTitle: "延伸閱讀與連結",
-    scoreChartTitle: "五大學院得分",
+    scoreChartTitle: "五大學院傾向分數",
     resultNoteTitle: "各學院核心屬性",
     resultNoteItems: [
       "🔴 紅馳學院 ── IP、市場",
@@ -69,6 +69,16 @@ window.UI_TRANSLATIONS = {
       "⚪ 銀倚學院 ── 角色、情感、心理",
     ],
     resultTieNote: "若出現同分，請優先選擇最有共鳴的學院。",
+    tieDecisionTitle: "你的創作傾向有多個學院同分",
+    tieDecisionDesc: "以下學院同為最高分。選擇你最有共鳴的創作偏好，或讓系統依原答案判定；分數不會改變。",
+    tieDecisionAuto: "依原答案判定",
+    tiePreferences: {
+      red: "希望作品吸引讀者，也重視市場與 IP 的發展。",
+      green: "喜歡新奇的構想，不想讓作品失去創意。",
+      blue: "重視自洽的世界觀，不希望情節出現邏輯漏洞。",
+      black: "在意文筆、敘事技巧與思想深度。",
+      white: "重視角色的內心與情感，期待讀者產生共鳴。",
+    },
     academyGlobalStatsTitle: "全體學院統計",
     academyNavTitle: "前往學院解析",
     aboutLinkText: "測驗與學院的設計",
@@ -201,7 +211,7 @@ window.UI_TRANSLATIONS = {
     resultTitle: "Creative Trait Test Result",
     resultTopLabel: "Your creative trait belongs to:",
     resultBgTitle: "Further Reading & Links",
-    scoreChartTitle: "Five Academy Scores",
+    scoreChartTitle: "Five Academy Preference Scores",
     resultNoteTitle: "Core Traits per Academy",
     resultNoteItems: [
       "🔴 Flaremarch — IP, Market",
@@ -212,6 +222,16 @@ window.UI_TRANSLATIONS = {
     ],
     resultTieNote:
       "In case of a tie, choose the academy that resonates most with you.",
+    tieDecisionTitle: "Several academies share your highest score",
+    tieDecisionDesc: "Choose the creative preference that resonates most, or let your original answers decide. Your scores will stay the same.",
+    tieDecisionAuto: "Decide from my original answers",
+    tiePreferences: {
+      red: "I want to engage readers and develop the market and IP potential of my work.",
+      green: "I value fresh ideas and do not want my work to lose its originality.",
+      blue: "I value a coherent world and want to avoid gaps in the story's logic.",
+      black: "I care about prose, narrative craft, and depth of thought.",
+      white: "I focus on characters' inner lives and emotions that resonate with readers.",
+    },
     academyGlobalStatsTitle: "Community Academy Statistics",
     academyNavTitle: "Go to Academy Details",
     aboutLinkText: "Quiz & Academy Design",
@@ -644,7 +664,7 @@ window.QUIZ_QUESTIONS = {
           label: "(B) 視角亂換，就算能勉強看懂也毫無文筆可言。",
           scores: [0, 0, 0, 3, 0],
         },
-        { label: "(C) 邏輯令人瘋狂吐槽，智商狂降。", scores: [0, 0, 0, 3, 0] },
+        { label: "(C) 邏輯令人瘋狂吐槽，智商狂降。", scores: [0, 0, 3, 0, 0] },
         {
           label: "(D) 心理描寫牽強，人物關係進展太過迅速。",
           scores: [0, 0, 0, 0, 3],
@@ -1075,7 +1095,7 @@ window.QUIZ_QUESTIONS = {
         },
         {
           label: "(C) Logic so frustrating it makes your brain hurt.",
-          scores: [0, 0, 0, 3, 0],
+          scores: [0, 0, 3, 0, 0],
         },
         {
           label:
