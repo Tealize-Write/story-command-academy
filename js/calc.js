@@ -20,6 +20,12 @@ let scores = [0, 0, 0, 0, 0]; // [red, green, blue, black, white]
 let qIndex = 0;
 let answerHistory = []; // 每題記錄玩家選了哪一個 option index
 let feedbackTimer = null;
+let advanceTimer = null;
+let advancing = false;
+let resultCompleted = false;
+let pendingTie = null;
+const RESULT_MODEL = window.QUIZ_RESULT_MODEL;
+const PENDING_TIE_KEY = "pendingAcademyTie";
 window.quizStartTime = 0; // 記錄測驗開始時間（用於計算 timeSpent）
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -38,20 +44,22 @@ const questionText = document.getElementById("question-text");
 const answerFeedback = document.getElementById("answer-feedback");
 const optionsContainer = document.getElementById("options-container");
 const HAS_QUIZ_UI = !!questionText;
+const tieDecision = document.getElementById("tie-decision");
 
 // ── 入口 ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   if (!HAS_QUIZ_UI) return;
-  startQuiz();
+  if (!restoreTieDecision()) startQuiz();
 
   document.addEventListener("langChanged", onLangChanged);
 });
 
 function onLangChanged() {
   if (!HAS_QUIZ_UI) return;
+  if (pendingTie) { renderTieDecision(); return; }
   updateProgressText();
   updateAnswerFeedbackText();
-  renderQuestion();
+  if (!advancing) renderQuestion();
 }
 
 // ── 區塊顯示（第一大題 / 第二大題）──────────────────────────────────────
@@ -64,6 +72,12 @@ function updateSectionHeader() {
 }
 
 function startQuiz() {
+  clearTimeout(advanceTimer);
+  clearTimeout(feedbackTimer);
+  advancing = false;
+  resultCompleted = false;
+  pendingTie = null;
+  RESULT_MODEL.remove(RESULT_MODEL.storage(), PENDING_TIE_KEY);
   qIndex = 0;
   scores = [0, 0, 0, 0, 0];
   answerHistory = [];
@@ -73,7 +87,7 @@ function startQuiz() {
     fetch(GAS_URL, { keepalive: true }).catch(() => {});
   }
   show(progressArea, sectionCard);
-  hide(calibrationCard, chapterTransition);
+  hide(calibrationCard, chapterTransition, tieDecision);
   show(questionCard);
   renderQuestion();
 }
@@ -114,6 +128,8 @@ function renderQuestion() {
 }
 
 function selectOption(optScores, btn, optIdx) {
+  if (advancing || pendingTie || resultCompleted) return;
+  advancing = true;
   optionsContainer
     .querySelectorAll(".quiz-option-btn")
     .forEach((b) => (b.disabled = true));
@@ -127,7 +143,8 @@ function selectOption(optScores, btn, optIdx) {
   qIndex++;
 
   const questions = QUIZ_QUESTIONS[currentLang];
-  setTimeout(() => {
+  advanceTimer = setTimeout(() => {
+    advancing = false;
     if (qIndex < questions.length) renderQuestionWithTransition();
     else showResult();
   }, QUESTION_ADVANCE_DELAY_MS);
@@ -198,19 +215,86 @@ function breakTie(candidates) {
 }
 
 function showResult() {
+  if (resultCompleted) return;
   const maxScore = Math.max(...scores);
   const topIndices = scores.reduce((acc, s, i) => {
     if (s === maxScore) acc.push(i);
     return acc;
   }, []);
-  const winnerIdx =
-    topIndices.length === 1 ? topIndices[0] : breakTie(topIndices);
-  const primaryTop = ACADEMIES[winnerIdx].key;
-  sessionStorage.setItem(
-    "latestAcademyScores",
-    JSON.stringify({ scores, savedAt: Date.now() }),
-  );
+  if (topIndices.length > 1) {
+    pendingTie = {
+      version: RESULT_MODEL.VERSION,
+      answers: [...answerHistory],
+      scores: [...scores],
+      startedAt: window.quizStartTime,
+      source: getTrafficSource(),
+    };
+    RESULT_MODEL.write(RESULT_MODEL.storage(), PENDING_TIE_KEY, pendingTie);
+    renderTieDecision();
+    return;
+  }
+  completeResult(ACADEMIES[topIndices[0]].key, "automatic");
+}
+
+function restoreTieDecision() {
+  const record = RESULT_MODEL.read(RESULT_MODEL.storage(), PENDING_TIE_KEY);
+  if (record?.version !== RESULT_MODEL.VERSION) return false;
+  const restoredScores = RESULT_MODEL.scoreAnswers(record.answers, QUIZ_QUESTIONS[currentLang]);
+  if (!restoredScores || !RESULT_MODEL.validScores(record.scores, QUIZ_QUESTIONS[currentLang]) ||
+      restoredScores.some((score, i) => score !== record.scores[i]) ||
+      RESULT_MODEL.classify(restoredScores).top.length < 2 ||
+      !Number.isFinite(record.startedAt) || record.startedAt <= 0) return false;
+  scores = restoredScores;
+  answerHistory = [...record.answers];
+  qIndex = answerHistory.length;
+  window.quizStartTime = record.startedAt;
+  pendingTie = record;
+  renderTieDecision();
+  return true;
+}
+
+function renderTieDecision() {
+  const t = UI_TRANSLATIONS[currentLang];
+  hide(progressArea, sectionCard, questionCard);
+  show(tieDecision);
+  document.getElementById("tie-title").textContent = t.tieDecisionTitle;
+  document.getElementById("tie-description").textContent = t.tieDecisionDesc;
+  const options = document.getElementById("tie-options");
+  options.innerHTML = "";
+  RESULT_MODEL.classify(scores).top.forEach(key => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "quiz-option-btn";
+    button.textContent = `${t.academyNames[key]} — ${t.tiePreferences[key]}`;
+    button.onclick = () => completeResult(key, "player");
+    options.appendChild(button);
+  });
+  const auto = document.getElementById("tie-auto");
+  auto.textContent = t.tieDecisionAuto;
+  auto.onclick = () => {
+    const candidates = RESULT_MODEL.classify(scores).top.map(key => RESULT_MODEL.ORDER.indexOf(key));
+    completeResult(ACADEMIES[breakTie(candidates)].key, "automatic");
+  };
+  document.getElementById("tie-title").focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function completeResult(primaryTop, selectionSource) {
+  if (resultCompleted || !RESULT_MODEL.classify(scores).top.includes(primaryTop)) return;
+  resultCompleted = true;
+  tieDecision?.querySelectorAll("button").forEach(button => { button.disabled = true; });
+  const result = {
+    version: RESULT_MODEL.VERSION,
+    scores: [...scores],
+    answers: [...answerHistory],
+    primary: primaryTop,
+    selectionSource,
+    savedAt: Date.now(),
+  };
+  RESULT_MODEL.write(RESULT_MODEL.storage(), "latestAcademyScores", result);
   submitToGAS(scores, primaryTop);
+  RESULT_MODEL.remove(RESULT_MODEL.storage(), PENDING_TIE_KEY);
+  pendingTie = null;
   window.location.href = `index.html?page=result&academy=${primaryTop}`;
 }
 
@@ -226,7 +310,7 @@ function submitToGAS(scoreArr, topKey) {
     clientId: getClientId(),
     keyword: topKey,
     action: "quiz_completed",
-    source: getTrafficSource(),
+    source: pendingTie?.source || getTrafficSource(),
     referrer: document.referrer || "",
     device: getDeviceType(),
     country: location.country,

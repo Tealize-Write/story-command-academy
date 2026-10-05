@@ -447,8 +447,19 @@ const RESULT_COPY = {
     academyTestHeading: "你的學院測試",
     resultHeading: "測試結果",
     primaryTitle: "── {name} ──",
-    pureViewTitle: "純種{name}人視角",
-    hybridTitle: "同分或次高分是{name}",
+    pureViewTitle: "{name}學院的創作視角",
+    tiedTitle: "同為最高分：{name}",
+    secondaryTitle: "次高傾向：{name}",
+    hypotheticalTitle: "假設你也有{name}傾向",
+    exploreTitle: "探索其他組合",
+    exploreDesc: "以下是假設組合的學院介紹，不是本次測驗的次高或同分結果。",
+    scoreDescription: "分數反映你對各院創作偏好的認同，不代表能力高低。負分表示較不認同；每院最高可得 31 分。書架展示各院分數，下方條圖以相同刻度比較。",
+    scoreUnit: "分",
+    zeroLabel: "0（中立）",
+    automaticTieNote: "最高分同分，主學院依原答案由後往前比對決定；其餘同分學院仍是你的最高傾向。",
+    playerTieNote: "最高分同分，主學院由你在決選中選擇；各院原始分數維持不變。",
+    introductionHeading: "學院介紹",
+    introductionLabel: "正在閱讀的學院：",
     missingAcademyParam: "找不到學院參數，請從測驗頁連結進入。",
     globalStatsMissingSource: "尚未設定 GAS 統計來源。",
     globalStatsLoadFailed: "讀取全體統計失敗，請稍後再試。",
@@ -459,8 +470,19 @@ const RESULT_COPY = {
     academyTestHeading: "Your Academy Reading",
     resultHeading: "Result",
     primaryTitle: "-- {name} --",
-    pureViewTitle: "Pure {name} Perspective",
-    hybridTitle: "Tie / Secondary Peak: {name}",
+    pureViewTitle: "The {name} Creative Perspective",
+    tiedTitle: "Also tied for highest: {name}",
+    secondaryTitle: "Secondary preference: {name}",
+    hypotheticalTitle: "If you also lean toward {name}",
+    exploreTitle: "Explore other combinations",
+    exploreDesc: "These are hypothetical academy combinations, not your tied or secondary results.",
+    scoreDescription: "Scores reflect agreement with creative preferences, not ability. Negative scores mean less agreement. Each academy can score up to 31. The shelf lists your scores; the bars below compare them on a shared scale.",
+    scoreUnit: "pts",
+    zeroLabel: "0 (neutral)",
+    automaticTieNote: "The highest score is tied. Your primary academy was chosen by comparing your original answers from last to first; the other tied academies remain your strongest preferences.",
+    playerTieNote: "The highest score is tied. You chose your primary academy in the tie decision; all original scores are unchanged.",
+    introductionHeading: "Academy Introduction",
+    introductionLabel: "Academy you are exploring:",
     missingAcademyParam:
       "Academy parameter is missing. Please enter from the quiz page.",
     globalStatsMissingSource: "GAS stats source is not configured yet.",
@@ -505,10 +527,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.body.classList.add("theme-" + key);
   renderContent(key);
   document.addEventListener("langChanged", () => {
-    const stage =
-      document.querySelector(".result-reveal-stage")?.dataset.revealState ||
-      "act1";
-    renderContent(key, { instant: true, revealState: stage });
+    renderContent(key, { instant: true });
+    if (!globalCountsCache) loadGlobalAcademyStats(key);
   });
   loadGlobalAcademyStats(key);
 });
@@ -528,6 +548,8 @@ function renderContent(key, options = {}) {
   const academyNames =
     t.academyNames || getUiTranslation(DEFAULT_LANG).academyNames || {};
   const academyName = academyNames[key] || key;
+  const resultRecord = readLatestResult(key);
+  const ranking = resultRecord ? window.QUIZ_RESULT_MODEL.classify(resultRecord.scores, key) : null;
   const wrap = document.getElementById("result-wrap");
   if (!wrap || !data) return;
 
@@ -536,7 +558,7 @@ function renderContent(key, options = {}) {
 
   const frag = document.createDocumentFragment();
 
-  const heading = el("h2", { style: "opacity:0.8;" }, copy.academyTestHeading);
+  const heading = el("h2", { style: "opacity:0.8;" }, resultRecord ? copy.academyTestHeading : copy.introductionHeading);
   heading.setAttribute("data-reveal", "act1");
   frag.appendChild(heading);
 
@@ -545,7 +567,7 @@ function renderContent(key, options = {}) {
   const resultTitle = el(
     "h2",
     { className: "res_title", style: "font-size:2.5rem;margin-bottom:30px;" },
-    copy.resultHeading,
+    resultRecord ? copy.resultHeading : copy.introductionHeading,
   );
   resultTitle.setAttribute("data-reveal", "act1");
   content.appendChild(resultTitle);
@@ -563,13 +585,17 @@ function renderContent(key, options = {}) {
     className: "result-winner-label",
     id: "result-winner-label",
   });
-  winnerLabel.textContent = t.resultTopLabel || "Your result:";
+  winnerLabel.textContent = resultRecord ? t.resultTopLabel : copy.introductionLabel;
   const winnerName = el("span", {
     className: "result-winner-name",
     id: "result-winner-name",
   });
   winnerBox.appendChild(winnerLabel);
   winnerBox.appendChild(winnerName);
+  if (ranking?.tied.length) {
+    winnerBox.appendChild(el("p", { className: "result-tie-note" },
+      resultRecord.selectionSource === "player" ? copy.playerTieNote : copy.automaticTieNote));
+  }
   content.appendChild(winnerBox);
 
   const scoreWrap = el("div", { className: "score-chart-container" });
@@ -580,7 +606,9 @@ function renderContent(key, options = {}) {
     className: "academy-bookshelf-container",
   });
   scoreWrap.appendChild(scoreTitle);
+  if (resultRecord) scoreWrap.appendChild(el("p", { className: "score-description" }, copy.scoreDescription));
   scoreWrap.appendChild(shelf);
+  scoreWrap.appendChild(el("div", { id: "academyScoreComparison", className: "score-comparison" }));
   content.appendChild(scoreWrap);
 
   const reportWrap = el("div", { className: "result-report-wrap" });
@@ -593,16 +621,25 @@ function renderContent(key, options = {}) {
     makeBlock(formatText(copy.pureViewTitle, academyName), data.pureView),
   );
 
-  ACADEMY_ORDER.forEach((other) => {
-    if (other === key) return;
+  const actualOthers = ranking ? (ranking.tied.length ? ranking.tied : ranking.secondary) : [];
+  actualOthers.forEach((other) => {
     const hybridName = academyNames[other] || other;
     reportWrap.appendChild(
       makeBlock(
-        formatText(copy.hybridTitle, hybridName),
+        formatText(ranking.tied.length ? copy.tiedTitle : copy.secondaryTitle, hybridName),
         data.hybrids[other] || [],
       ),
     );
   });
+  const hypothetical = ACADEMY_ORDER.filter(other => other !== key && !actualOthers.includes(other));
+  if (hypothetical.length) {
+    const explore = el("details", { className: "result-explore" });
+    explore.appendChild(el("summary", {}, copy.exploreTitle));
+    explore.appendChild(el("p", {}, copy.exploreDesc));
+    hypothetical.forEach(other => explore.appendChild(makeBlock(
+      formatText(copy.hypotheticalTitle, academyNames[other] || other), data.hybrids[other] || [])));
+    reportWrap.appendChild(explore);
+  }
 
   const bgTitle = el(
     "h2",
@@ -623,7 +660,7 @@ function renderContent(key, options = {}) {
   });
 
   const retakeBtn = el("button", { className: "res_btn" });
-  retakeBtn.classList.add("action-card");
+  retakeBtn.classList.add("action-card", "primary-action");
   retakeBtn.textContent = t.retakeText || "Retake";
   retakeBtn.onclick = () => {
     window.location.href = "index.html";
@@ -732,7 +769,7 @@ function renderContent(key, options = {}) {
     const revealState = options.revealState || "act3";
     content.dataset.revealState = revealState;
     if (revealState !== "act1") {
-      renderAcademyBookshelf(readLatestScores(), key);
+      renderAcademyBookshelf(resultRecord?.scores || null, key);
     }
     if (revealState === "act3") {
       skipRevealBtn.classList.add("is-hidden");
@@ -761,7 +798,7 @@ function startRevealSequence(key, content, skipBtn) {
   const revealAll = () => {
     clearRevealTimers();
     showAct("act3");
-    renderAcademyBookshelf(readLatestScores(), key);
+    renderAcademyBookshelf(readLatestResult(key)?.scores || null, key);
     skipBtn?.classList.add("is-hidden");
   };
 
@@ -776,7 +813,7 @@ function startRevealSequence(key, content, skipBtn) {
   revealTimers.push(
     setTimeout(() => {
       showAct("act2");
-      renderAcademyBookshelf(readLatestScores(), key);
+      renderAcademyBookshelf(readLatestResult(key)?.scores || null, key);
     }, REVEAL_ACT2_DELAY_MS),
   );
   revealTimers.push(
@@ -801,22 +838,10 @@ function makeBlock(title, paragraphs) {
   return div;
 }
 
-function readLatestScores() {
-  try {
-    const raw = sessionStorage.getItem("latestAcademyScores");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (
-      !parsed ||
-      !Array.isArray(parsed.scores) ||
-      parsed.scores.length !== 5
-    ) {
-      return null;
-    }
-    return parsed.scores.map((n) => Number(n) || 0);
-  } catch {
-    return null;
-  }
+function readLatestResult(primary) {
+  const model = window.QUIZ_RESULT_MODEL;
+  const record = model.read(model.storage(), "latestAcademyScores");
+  return model.validResult(record, primary, window.QUIZ_QUESTIONS[DEFAULT_LANG]) ? record : null;
 }
 
 function postActionLog(action, keyword, timeSpent = 0) {
@@ -902,21 +927,21 @@ async function loadGlobalAcademyStats(activeKey) {
   }
 }
 
-function renderBarShelf(shelf, values, activeKey) {
+function renderBarShelf(shelf, values, activeKey, personal = false) {
   shelf.innerHTML = "";
   const names = getUiTranslation().academyNames || {};
   const academyColors = getAcademyColors();
-  const percentages = toDisplayPercentages(values);
+  const percentages = personal ? null : toDisplayPercentages(values);
 
   ACADEMY_ORDER.forEach((key, idx) => {
     const academyName = names[key] || key;
-    const scorePercent = percentages[idx];
-    const bookHeight =
+    const scorePercent = personal ? 0 : percentages[idx];
+    const bookHeight = personal ? MIN_BOOK_HEIGHT_PERCENT :
       MIN_BOOK_HEIGHT_PERCENT +
       (scorePercent / 100) *
         (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT);
     const row = el("div", {
-      className: `academy-book-item${key === activeKey ? " is-top" : ""}`,
+      className: `academy-book-item${key === activeKey ? " is-top" : ""}${personal && values[idx] < 0 ? " is-negative" : ""}`,
     });
     const bar = el("div", { className: "academy-book-bar" });
     const isLatinName = /[A-Za-z]/.test(academyName);
@@ -939,7 +964,7 @@ function renderBarShelf(shelf, values, activeKey) {
     edge.setAttribute("aria-hidden", "true");
     fill.appendChild(edge);
     fill.appendChild(
-      el("span", { className: "academy-book-score" }, `${scorePercent}%`),
+      el("span", { className: "academy-book-score" }, personal ? `${values[idx]} ${getResultCopy().scoreUnit}` : `${scorePercent}%`),
     );
     bar.appendChild(fill);
     row.appendChild(bar);
@@ -1011,7 +1036,46 @@ function renderAcademyBookshelf(scoreList, activeKey) {
     return;
   }
 
-  renderBarShelf(shelf, scoreList, activeKey);
+  renderBarShelf(shelf, scoreList, activeKey, true);
+  renderScoreComparison(scoreList);
+}
+
+function renderScoreComparison(scoreList) {
+  const comparison = document.getElementById("academyScoreComparison");
+  if (!comparison) return;
+  comparison.innerHTML = "";
+  const copy = getResultCopy();
+  const model = window.QUIZ_RESULT_MODEL;
+  const bounds = model.getBounds(window.QUIZ_QUESTIONS[DEFAULT_LANG]);
+  const min = Math.min(0, ...bounds.map(bound => bound.min));
+  const max = Math.max(0, ...bounds.map(bound => bound.max));
+  const width = max - min || 1;
+  const zero = -min / width * 100;
+  const names = getUiTranslation().academyNames;
+  const colors = getAcademyColors();
+  comparison.style.setProperty("--score-zero", `${zero}%`);
+  ACADEMY_ORDER.forEach((key, i) => {
+    const score = scoreList[i];
+    const row = el("div", { className: "score-comparison-row" });
+    row.appendChild(el("span", { className: "score-comparison-name" }, names[key]));
+    const track = el("div", { className: "score-comparison-track" });
+    track.setAttribute("aria-hidden", "true");
+    const bar = el("span", { className: `score-comparison-fill${score < 0 ? " is-negative" : ""}` });
+    bar.style.left = `${score < 0 ? (score - min) / width * 100 : zero}%`;
+    bar.style.width = `${Math.abs(score) / width * 100}%`;
+    bar.style.setProperty("--score-color", colors[key]);
+    track.appendChild(bar);
+    row.appendChild(track);
+    row.appendChild(el("span", { className: "score-comparison-value" }, `${score} ${copy.scoreUnit}`));
+    comparison.appendChild(row);
+  });
+  const axis = el("div", { className: "score-comparison-axis" });
+  const labels = el("div", { className: "score-comparison-axis-labels" });
+  labels.appendChild(el("span", {}, String(min)));
+  labels.appendChild(el("span", { className: "score-zero-label" }, copy.zeroLabel));
+  labels.appendChild(el("span", { className: "score-max-label" }, String(max)));
+  axis.appendChild(labels);
+  comparison.appendChild(axis);
 }
 
 // ── 建立 DOM 元素的小工具 ───────────────────────────────────────────────────
