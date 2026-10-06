@@ -1,6 +1,8 @@
 // js/translation.js — 語言切換邏輯
 
-window.currentLang = localStorage.getItem("lang") || "zh-TW";
+try { window.currentLang = localStorage.getItem("lang") || "zh-TW"; }
+catch { window.currentLang = "zh-TW"; }
+if (!window.UI_TRANSLATIONS[window.currentLang]) window.currentLang = "zh-TW";
 
 let _langBtns;
 
@@ -37,8 +39,9 @@ function resolvePageTitle(lang, t) {
 }
 
 function applyLang(lang) {
+  if (!window.UI_TRANSLATIONS[lang]) return;
   window.currentLang = lang;
-  localStorage.setItem("lang", lang);
+  try { localStorage.setItem("lang", lang); } catch { /* Language switching still works without storage. */ }
   document.documentElement.lang = lang;
 
   const t = window.UI_TRANSLATIONS[lang];

@@ -11,11 +11,11 @@
   };
 
   const COLOR_FALLBACK = {
-    red: "#d85f5f",
-    green: "#91b66f",
-    blue: "#4f78a8",
-    black: "#1f1f1f",
-    white: "#c9c3b7",
+    red: "#b44b43",
+    green: "#5d7848",
+    blue: "#4d7395",
+    black: "#292b2c",
+    white: "#666b70",
   };
 
   function getAcademyColors() {

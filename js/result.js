@@ -20,8 +20,8 @@ const MAX_BOOK_HEIGHT_PERCENT = 96;
 const DEFAULT_LANG = "zh-TW";
 
 function getCurrentLang() {
-  const lang =
-    window.currentLang || localStorage.getItem("lang") || DEFAULT_LANG;
+  let lang = window.currentLang;
+  try { lang ||= localStorage.getItem("lang"); } catch {}
   return window.UI_TRANSLATIONS?.[lang] ? lang : DEFAULT_LANG;
 }
 
@@ -444,48 +444,42 @@ const RESULT_CONTENT = {
 
 const RESULT_COPY = {
   "zh-TW": {
-    academyTestHeading: "你的學院測試",
-    resultHeading: "測試結果",
+    academyTestHeading: "瑪臨高中 · 學院判定書",
+    resultHeading: "學院歸屬已揭曉",
+    personalShelfTitle: "你的五院共鳴",
     primaryTitle: "── {name} ──",
     pureViewTitle: "{name}學院的創作視角",
     tiedTitle: "同為最高分：{name}",
     secondaryTitle: "次高傾向：{name}",
     hypotheticalTitle: "假設你也有{name}傾向",
     exploreTitle: "探索其他組合",
-    exploreDesc: "以下是假設組合的學院介紹，不是本次測驗的次高或同分結果。",
-    scoreDescription: "分數反映你對各院創作偏好的認同，不代表能力高低。負分表示較不認同；每院最高可得 31 分。書架展示各院分數，下方條圖以相同刻度比較。",
+    exploreDesc: "看看不同創作偏好交織時，會展現怎樣的風格。",
     scoreUnit: "分",
-    zeroLabel: "0（中立）",
-    automaticTieNote: "最高分同分，主學院依原答案由後往前比對決定；其餘同分學院仍是你的最高傾向。",
-    playerTieNote: "最高分同分，主學院由你在決選中選擇；各院原始分數維持不變。",
     introductionHeading: "學院介紹",
     introductionLabel: "正在閱讀的學院：",
-    missingAcademyParam: "找不到學院參數，請從測驗頁連結進入。",
-    globalStatsMissingSource: "尚未設定 GAS 統計來源。",
+    missingAcademyParam: "找不到這個學院，請重新測驗。",
+    globalStatsMissingSource: "統計暫時無法顯示，請稍後再試。",
     globalStatsLoadFailed: "讀取全體統計失敗，請稍後再試。",
     globalStatsNoData: "暫無全體統計資料。",
     localScoresMissing: "請先完成測驗，即可顯示五學院分數。",
   },
   en: {
-    academyTestHeading: "Your Academy Reading",
-    resultHeading: "Result",
+    academyTestHeading: "Marlin High · Academy Assignment",
+    resultHeading: "Your Academy Revealed",
+    personalShelfTitle: "Your Academy Resonance",
     primaryTitle: "-- {name} --",
     pureViewTitle: "The {name} Creative Perspective",
     tiedTitle: "Also tied for highest: {name}",
     secondaryTitle: "Secondary preference: {name}",
     hypotheticalTitle: "If you also lean toward {name}",
     exploreTitle: "Explore other combinations",
-    exploreDesc: "These are hypothetical academy combinations, not your tied or secondary results.",
-    scoreDescription: "Scores reflect agreement with creative preferences, not ability. Negative scores mean less agreement. Each academy can score up to 31. The shelf lists your scores; the bars below compare them on a shared scale.",
+    exploreDesc: "Discover the styles that emerge when different creative preferences meet.",
     scoreUnit: "pts",
-    zeroLabel: "0 (neutral)",
-    automaticTieNote: "The highest score is tied. Your primary academy was chosen by comparing your original answers from last to first; the other tied academies remain your strongest preferences.",
-    playerTieNote: "The highest score is tied. You chose your primary academy in the tie decision; all original scores are unchanged.",
     introductionHeading: "Academy Introduction",
     introductionLabel: "Academy you are exploring:",
     missingAcademyParam:
-      "Academy parameter is missing. Please enter from the quiz page.",
-    globalStatsMissingSource: "GAS stats source is not configured yet.",
+      "This academy could not be found. Please retake the quiz.",
+    globalStatsMissingSource: "Statistics are temporarily unavailable. Please try again later.",
     globalStatsLoadFailed:
       "Failed to load community stats. Please try again later.",
     globalStatsNoData: "No community statistics available yet.",
@@ -506,8 +500,55 @@ function formatText(template, name) {
   return String(template || "").replace("{name}", name);
 }
 
+// Condensed from the full portraits; combine only the actual secondary/tied traits.
+const RESULT_SUMMARY = {
+  "zh-TW": {
+    primary: {
+      red: "你留意讀者的喜好，讓故事找到能引起共鳴的方向",
+      green: "你喜歡跳出慣例，讓新奇的點子成為故事的起點",
+      blue: "你細心考究世界與情節，讓想像中的故事像真實存在",
+      black: "你細細雕琢文字，讓優美筆觸承載思考",
+      white: "你以人物為故事的中心，細膩描繪情感與關係",
+    },
+    secondary: {
+      red: "留意讀者的期待與故事的吸引力",
+      green: "用新奇的點子為故事帶來驚喜",
+      blue: "用細節與邏輯讓故事更可信",
+      black: "以講究的文字留下餘韻",
+      white: "從人物的內心與關係推動情節",
+    },
+  },
+  en: {
+    primary: {
+      red: "You keep readers in mind and shape stories that resonate with them",
+      green: "You venture beyond familiar patterns and let fresh ideas start the story",
+      blue: "You build worlds and plots with care, making imagined stories feel real",
+      black: "You polish your language to give your ideas depth and resonance",
+      white: "You place people at the heart of the story, exploring emotions and relationships",
+    },
+    secondary: {
+      red: "consider readers' expectations and what draws them in",
+      green: "bring surprise to the story through fresh ideas",
+      blue: "ground the story in detail and logic",
+      black: "give your prose a lasting resonance",
+      white: "let characters' inner lives and relationships drive the plot",
+    },
+  },
+};
+
+function getResultSummary(key, otherKeys, lang) {
+  const copy = RESULT_SUMMARY[lang] || RESULT_SUMMARY[DEFAULT_LANG];
+  const traits = otherKeys.map(other => copy.secondary[other]);
+  if (lang === "en") {
+    const others = new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(traits);
+    return copy.primary[key] + (others ? "; you also " + others : "") + ".";
+  }
+  return copy.primary[key] + (traits.length ? "，也" + traits.join("、") : "") + "。";
+}
+
 // ── 入口 ────────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", initializeResultPage);
+function initializeResultPage() {
   const wrap = document.getElementById("result-wrap");
   if (!wrap) return;
 
@@ -524,14 +565,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  document.body.classList.add("theme-" + key);
+  ACADEMY_ORDER.forEach(academy => document.body.classList.remove("theme-" + academy));
   renderContent(key);
-  document.addEventListener("langChanged", () => {
-    renderContent(key, { instant: true });
-    if (!globalCountsCache) loadGlobalAcademyStats(key);
-  });
+  if (!wrap.dataset.ready) {
+    wrap.dataset.ready = "true";
+    document.addEventListener("langChanged", () => {
+      renderContent(key, { instant: true });
+      if (!globalCountsCache) loadGlobalAcademyStats(key);
+    });
+  }
   loadGlobalAcademyStats(key);
-});
+}
 
 function getAcademyParam() {
   const p = new URLSearchParams(window.location.search).get("academy");
@@ -552,21 +596,22 @@ function renderContent(key, options = {}) {
   const ranking = resultRecord ? window.QUIZ_RESULT_MODEL.classify(resultRecord.scores, key) : null;
   const wrap = document.getElementById("result-wrap");
   if (!wrap || !data) return;
+  const exploreOpen = wrap.querySelector(".result-explore")?.open || false;
 
   clearRevealTimers();
   wrap.innerHTML = "";
 
   const frag = document.createDocumentFragment();
 
-  const heading = el("h2", { style: "opacity:0.8;" }, resultRecord ? copy.academyTestHeading : copy.introductionHeading);
+  const heading = el("p", { className: "result-eyebrow" }, resultRecord ? copy.academyTestHeading : copy.introductionHeading);
   heading.setAttribute("data-reveal", "act1");
   frag.appendChild(heading);
 
-  const content = el("div", { className: "res_content result-reveal-stage" });
+  const content = el("div", { className: "res_content result-reveal-stage result-letter" });
 
   const resultTitle = el(
     "h2",
-    { className: "res_title", style: "font-size:2.5rem;margin-bottom:30px;" },
+    { className: "res_title" },
     resultRecord ? copy.resultHeading : copy.introductionHeading,
   );
   resultTitle.setAttribute("data-reveal", "act1");
@@ -580,6 +625,7 @@ function renderContent(key, options = {}) {
   content.appendChild(skipRevealBtn);
 
   const winnerBox = el("div", { className: "result-winner-box" });
+  winnerBox.dataset.academy = key;
   winnerBox.setAttribute("data-reveal", "act1");
   const winnerLabel = el("p", {
     className: "result-winner-label",
@@ -587,53 +633,61 @@ function renderContent(key, options = {}) {
   });
   winnerLabel.textContent = resultRecord ? t.resultTopLabel : copy.introductionLabel;
   const winnerName = el("span", {
-    className: "result-winner-name",
+    className: "result-winner-name" + (/[A-Za-z]/.test(academyName) ? " is-latin" : ""),
     id: "result-winner-name",
   });
   winnerBox.appendChild(winnerLabel);
   winnerBox.appendChild(winnerName);
-  if (ranking?.tied.length) {
-    winnerBox.appendChild(el("p", { className: "result-tie-note" },
-      resultRecord.selectionSource === "player" ? copy.playerTieNote : copy.automaticTieNote));
-  }
   content.appendChild(winnerBox);
+
+  if (resultRecord) {
+    const otherKeys = ranking.tied.length ? ranking.tied : ranking.secondary;
+    if (otherKeys.length) winnerBox.appendChild(el("p", { className: "result-secondary result-secondary-label" },
+      (ranking.tied.length ? t.resultTiedLabel : t.resultSecondaryLabel) +
+      otherKeys.map(other => academyNames[other]).join(lang === "en" ? ", " : "、")));
+    winnerBox.appendChild(el("p", { className: "result-preference" }, getResultSummary(key, otherKeys, lang)));
+  }
+  if (resultRecord?.memoryOnly) content.appendChild(el("p", { className: "save-status", role: "status" }, t.resultMemoryOnly));
 
   const scoreWrap = el("div", { className: "score-chart-container" });
   scoreWrap.setAttribute("data-reveal", "act2");
-  const scoreTitle = el("h3", {}, t.scoreChartTitle || "Scores");
+  const scoreTitle = el("h3", {}, resultRecord ? copy.personalShelfTitle : t.scoreChartTitle);
   const shelf = el("div", {
     id: "academyBookShelf",
     className: "academy-bookshelf-container",
   });
   scoreWrap.appendChild(scoreTitle);
-  if (resultRecord) scoreWrap.appendChild(el("p", { className: "score-description" }, copy.scoreDescription));
   scoreWrap.appendChild(shelf);
-  scoreWrap.appendChild(el("div", { id: "academyScoreComparison", className: "score-comparison" }));
   content.appendChild(scoreWrap);
 
   const reportWrap = el("div", { className: "result-report-wrap" });
   reportWrap.setAttribute("data-reveal", "act3");
+  const fullDetails = el("section", { className: "result-details" });
+  fullDetails.setAttribute("aria-label", t.resultDetailsTitle);
+  fullDetails.appendChild(el("h3", {}, t.resultDetailsTitle));
 
-  reportWrap.appendChild(
+  fullDetails.appendChild(
     makeBlock(formatText(copy.primaryTitle, academyName), data.main),
   );
-  reportWrap.appendChild(
+  fullDetails.appendChild(
     makeBlock(formatText(copy.pureViewTitle, academyName), data.pureView),
   );
 
   const actualOthers = ranking ? (ranking.tied.length ? ranking.tied : ranking.secondary) : [];
   actualOthers.forEach((other) => {
     const hybridName = academyNames[other] || other;
-    reportWrap.appendChild(
+    fullDetails.appendChild(
       makeBlock(
         formatText(ranking.tied.length ? copy.tiedTitle : copy.secondaryTitle, hybridName),
         data.hybrids[other] || [],
       ),
     );
   });
+  reportWrap.appendChild(fullDetails);
   const hypothetical = ACADEMY_ORDER.filter(other => other !== key && !actualOthers.includes(other));
   if (hypothetical.length) {
     const explore = el("details", { className: "result-explore" });
+    explore.open = exploreOpen;
     explore.appendChild(el("summary", {}, copy.exploreTitle));
     explore.appendChild(el("p", {}, copy.exploreDesc));
     hypothetical.forEach(other => explore.appendChild(makeBlock(
@@ -641,101 +695,7 @@ function renderContent(key, options = {}) {
     reportWrap.appendChild(explore);
   }
 
-  const bgTitle = el(
-    "h2",
-    { style: "margin-top:50px;" },
-    t.resultBgTitle || "Further Reading",
-  );
-  reportWrap.appendChild(bgTitle);
-
-  const btnNav = el("nav", { className: "result-actions-grid" });
-
-  const row1 = el("div", { className: "result-actions-row" });
-  const row2 = el("div", { className: "result-actions-row" });
-  const row3 = el("div", {
-    className: "result-actions-row result-actions-row-two",
-  });
-  const row4 = el("div", {
-    className: "result-actions-row result-actions-row-single",
-  });
-
-  const retakeBtn = el("button", { className: "res_btn" });
-  retakeBtn.classList.add("action-card", "primary-action");
-  retakeBtn.textContent = t.retakeText || "Retake";
-  retakeBtn.onclick = () => {
-    window.location.href = "index.html";
-  };
-
-  const LINK_DEFS = [
-    {
-      href: "https://www.penana.com/story/16766/",
-      i18nKey: "aboutEnrollPenana",
-      text: "Penana",
-      row: row1,
-    },
-    {
-      href: "https://www.kadokado.com.tw/book/1425",
-      i18nKey: "aboutEnrollKado",
-      text: "KadoKado",
-      row: row1,
-    },
-    {
-      href: "https://cxc.today/zh/store/ApatiteBlue/work/20217",
-      i18nKey: "aboutEnrollCxc",
-      text: "CXC",
-      row: row1,
-    },
-    {
-      href: "https://www.facebook.com/TealizeWrite/",
-      i18nKey: "aboutEnrollFb",
-      text: "Facebook",
-      row: row2,
-    },
-    {
-      href: "https://www.instagram.com/tealize_write/",
-      i18nKey: "aboutEnrollIg",
-      text: "Instagram",
-      row: row2,
-    },
-    {
-      href: "https://www.plurk.com/Tealize",
-      i18nKey: "aboutEnrollPlurk",
-      text: "Plurk",
-      row: row2,
-    },
-    {
-      href: "about.html",
-      i18nKey: "aboutLinkText",
-      text: "測驗與學院設計",
-      row: row3,
-    },
-    {
-      href: "https://tealize-write.github.io/",
-      i18nKey: "creatorBase",
-      text: "學校創辦人的基地",
-      row: row3,
-    },
-  ];
-
-  LINK_DEFS.forEach(({ href, text, i18nKey, row }) => {
-    const link = el("a", {
-      href,
-      className: "res_btn action-card",
-      target: "_blank",
-    });
-    link.textContent = i18nKey ? t[i18nKey] || text : text;
-    bindTrackedLink(link, link.textContent || text, key);
-    row.appendChild(link);
-  });
-
-  row4.appendChild(retakeBtn);
-
-  btnNav.appendChild(row1);
-  btnNav.appendChild(row2);
-  btnNav.appendChild(row3);
-  btnNav.appendChild(row4);
-
-  reportWrap.appendChild(btnNav);
+  reportWrap.appendChild(makeResultConnections(key, t));
 
   const globalStatsWrap = el("div", { className: "score-chart-container" });
   const globalStatsTitle = el(
@@ -829,6 +789,158 @@ function clearRevealTimers() {
   revealTimers = [];
 }
 
+function makeResultConnections(activeKey, t) {
+  const section = el("section", { className: "result-connections result-actions-grid" });
+  const works = el("section", { className: "result-works" });
+  works.setAttribute("aria-labelledby", "result-works-title");
+  const worksHeader = el("div", { className: "result-section-header" });
+  worksHeader.appendChild(el("h2", { id: "result-works-title" }, t.resultWorksTitle));
+  const personalWebsite = makeResultLink("https://tealize-write.github.io/", t.resultPersonalWebsite, "result-utility-link", activeKey);
+  decorateResultUtilityLink(personalWebsite, "website");
+  worksHeader.appendChild(personalWebsite);
+  works.appendChild(worksHeader);
+
+  const workCard = el("article", { className: "result-work-card" });
+  workCard.appendChild(el("img", { className: "result-work-cover", src: "img/cover.jpg", alt: t.resultWorkCoverAlt,
+    width: 1000, height: 1429, loading: "lazy" }));
+  const workText = el("div", { className: "result-work-text" });
+  workText.appendChild(el("p", { className: "result-work-subtitle" }, t.resultWorkSubtitle));
+  workText.appendChild(el("h3", {}, t.resultWorkTitle));
+  workText.appendChild(el("p", { className: "result-work-description" }, t.resultWorkDescription));
+  const readingLinks = el("nav", { className: "result-reading-links" });
+  readingLinks.setAttribute("aria-label", t.resultReadingPlatforms);
+  readingLinks.appendChild(el("span", { className: "result-reading-label" }, t.resultReadingPlatforms));
+  const platforms = [
+    ["Penana", "https://www.penana.com/story/16766/"],
+    ["KadoKado", "https://www.kadokado.com.tw/book/1425"],
+    ["CXC", "https://cxc.today/zh/store/ApatiteBlue/work/20217"],
+  ];
+  platforms.forEach(([name, href]) => {
+    const link = makeResultLink(href, name, "result-reading-link", activeKey);
+    link.setAttribute("aria-label", t.resultReadOn.replace("{platform}", name));
+    readingLinks.appendChild(link);
+  });
+  workText.appendChild(readingLinks);
+  workCard.appendChild(workText);
+  works.appendChild(workCard);
+  section.appendChild(works);
+
+  const author = el("section", { className: "result-author" });
+  author.setAttribute("aria-labelledby", "result-author-title");
+  const authorText = el("div", {});
+  authorText.appendChild(el("h3", { id: "result-author-title" }, t.resultAuthorTitle));
+  authorText.appendChild(el("p", { className: "result-author-name" }, t.resultAuthorName));
+  author.appendChild(authorText);
+  const socialNav = el("nav", { className: "result-social-links" });
+  socialNav.setAttribute("aria-label", t.resultAuthorTitle);
+  const socials = [
+    ["facebook", "Facebook", "https://www.facebook.com/TealizeWrite/"],
+    ["instagram", "Instagram", "https://www.instagram.com/tealize_write/"],
+    ["threads", "Threads", "https://www.threads.com/@tealize_write"],
+    ["plurk", "Plurk", "https://www.plurk.com/Tealize"],
+  ];
+  socials.forEach(([id, name, href]) => {
+    const link = makeResultLink(href, name, "result-social-link", activeKey);
+    link.dataset.platform = id;
+    link.setAttribute("aria-label", name);
+    link.title = name;
+    link.textContent = "";
+    link.appendChild(makeSocialIcon(id));
+    socialNav.appendChild(link);
+  });
+  author.appendChild(socialNav);
+  section.appendChild(author);
+
+  const quizNav = el("nav", { className: "result-quiz-nav" });
+  quizNav.setAttribute("aria-label", t.resultQuizActionsLabel);
+  const aboutLink = el("a", { className: "result-utility-link", href: "about.html" }, t.aboutLinkText);
+  decorateResultUtilityLink(aboutLink, "book");
+  bindTrackedLink(aboutLink, t.aboutLinkText, activeKey);
+  quizNav.appendChild(aboutLink);
+  const retake = el("button", { id: "retake-quiz", className: "res_btn result-retake", type: "button" }, t.retakeText);
+  retake.onclick = () => { window.location.href = "index.html?page=quiz&restart=1"; };
+  quizNav.appendChild(retake);
+  section.appendChild(quizNav);
+  return section;
+}
+
+function makeResultLink(href, label, className, activeKey) {
+  const link = el("a", { href, className, target: "_blank", rel: "noopener noreferrer" }, label);
+  bindTrackedLink(link, label, activeKey);
+  return link;
+}
+
+function decorateResultUtilityLink(link, kind) {
+  const label = link.textContent;
+  link.textContent = "";
+  link.appendChild(makeResultUtilityIcon(kind));
+  link.appendChild(el("span", { className: "result-utility-label" }, label));
+  const arrow = makeResultUtilityIcon(kind === "website" ? "external" : "forward");
+  arrow.classList.add("result-utility-arrow");
+  link.appendChild(arrow);
+}
+
+function makeResultUtilityIcon(kind) {
+  const ns = "http://www.w3.org/2000/svg";
+  const icon = document.createElementNS(ns, "svg");
+  const attributes = { viewBox: "0 0 24 24", width: 20, height: 20, fill: "none",
+    stroke: "currentColor", "stroke-width": 1.5, "stroke-linecap": "round",
+    "stroke-linejoin": "round", "aria-hidden": "true", focusable: "false" };
+  Object.entries(attributes).forEach(([name, value]) => icon.setAttribute(name, value));
+  const paths = {
+    website: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c2.2 2.5 3.5 5.5 3.5 9S14.2 18.5 12 21c-2.2-2.5-3.5-5.5-3.5-9S9.8 5.5 12 3Z",
+    book: "M12 6v15M12 6C9 4 6 3.5 3 4v15c3-.5 6 0 9 2 3-2 6-2.5 9-2V4c-3-.5-6 0-9 2Z",
+    external: "M7 17 17 7M7 7h10v10",
+    forward: "M5 12h14M13 6l6 6-6 6",
+  };
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", paths[kind]);
+  icon.appendChild(path);
+  return icon;
+}
+
+function makeSocialIcon(platform) {
+  const ns = "http://www.w3.org/2000/svg";
+  const icon = document.createElementNS(ns, "svg");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("width", "22");
+  icon.setAttribute("height", "22");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("focusable", "false");
+  if (platform === "facebook") {
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("fill", "currentColor");
+    path.setAttribute("d", "M14 22v-9h3l.5-4H14V6.5c0-1.2.4-2 2-2h1.8V1.2c-.7-.1-1.7-.2-2.9-.2C11.7 1 10 2.9 10 6.2V9H7v4h3v9z");
+    icon.appendChild(path);
+  } else {
+    icon.setAttribute("fill", "none");
+    icon.setAttribute("stroke", "currentColor");
+    icon.setAttribute("stroke-width", "1.8");
+    icon.setAttribute("stroke-linecap", "round");
+    icon.setAttribute("stroke-linejoin", "round");
+    if (platform === "instagram") {
+      const frame = document.createElementNS(ns, "rect");
+      for (const [attr, value] of Object.entries({ x: 3, y: 3, width: 18, height: 18, rx: 5 })) frame.setAttribute(attr, value);
+      icon.appendChild(frame);
+      const lens = document.createElementNS(ns, "circle");
+      lens.setAttribute("cx", "12"); lens.setAttribute("cy", "12"); lens.setAttribute("r", "4");
+      icon.appendChild(lens);
+      const dot = document.createElementNS(ns, "circle");
+      dot.setAttribute("cx", "17.5"); dot.setAttribute("cy", "6.5"); dot.setAttribute("r", "0.7");
+      dot.setAttribute("fill", "currentColor"); icon.appendChild(dot);
+    } else if (platform === "threads") {
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", "M18.7 7.5C18 4.2 15.8 2.5 12.1 2.5 7 2.5 4 5.9 4 12s3 9.5 8.1 9.5c4.4 0 7.9-2.6 7.9-6.2 0-3.1-2.5-5.1-6-5.1-2.8 0-4.8 1.4-4.8 3.4 0 1.5 1.2 2.5 2.9 2.5 2.6 0 4.2-2 4.2-5.1 0-3.2-1.8-5.2-4.4-5.2-1.4 0-2.6.5-3.4 1.5");
+      icon.appendChild(path);
+    } else {
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", "M7 22V8h6a6 6 0 0 1 0 12H7M7 4h7");
+      icon.appendChild(path);
+    }
+  }
+  return icon;
+}
+
 function makeBlock(title, paragraphs) {
   const div = el("div", { className: "res_ack" });
   div.appendChild(el("span", { className: "res_ack-title" }, title));
@@ -840,8 +952,9 @@ function makeBlock(title, paragraphs) {
 
 function readLatestResult(primary) {
   const model = window.QUIZ_RESULT_MODEL;
-  const record = model.read(model.storage(), "latestAcademyScores");
-  return model.validResult(record, primary, window.QUIZ_QUESTIONS[DEFAULT_LANG]) ? record : null;
+  const records = [window.currentQuizResult, model.read(model.storage(), "latestAcademyScores"),
+    model.read(model.storage("localStorage"), "latestAcademyScores")];
+  return records.find(record => model.validResult(record, primary, window.QUIZ_QUESTIONS[DEFAULT_LANG])) || null;
 }
 
 function postActionLog(action, keyword, timeSpent = 0) {
@@ -910,12 +1023,15 @@ async function loadGlobalAcademyStats(activeKey) {
   }
 
   try {
-    const res = await fetch(GAS_URL);
-    const json = await res.json();
-    globalCountsCache = json.counts || {};
-    globalTotalCache = Number(json.total) || 0;
+    const json = await window.ACADEMY_STATS.load(GAS_URL);
+    globalCountsCache = json.counts;
+    globalTotalCache = json.total;
     renderGlobalAcademyStats(globalCountsCache, activeKey, globalTotalCache);
   } catch {
+    globalCountsCache = null;
+    globalTotalCache = 0;
+    const totalEl = document.getElementById("academyGlobalStatsTotal");
+    if (totalEl) totalEl.textContent = "";
     shelf.innerHTML = "";
     shelf.appendChild(
       el(
@@ -932,16 +1048,20 @@ function renderBarShelf(shelf, values, activeKey, personal = false) {
   const names = getUiTranslation().academyNames || {};
   const academyColors = getAcademyColors();
   const percentages = personal ? null : toDisplayPercentages(values);
+  shelf.classList.toggle("personal-score-shelf", personal);
+  const maximumScore = personal ? Math.max(...window.QUIZ_RESULT_MODEL.getBounds(window.QUIZ_QUESTIONS[DEFAULT_LANG]).map(bound => bound.max)) : 100;
 
   ACADEMY_ORDER.forEach((key, idx) => {
     const academyName = names[key] || key;
     const scorePercent = personal ? 0 : percentages[idx];
-    const bookHeight = personal ? MIN_BOOK_HEIGHT_PERCENT :
+    // Each nonzero book keeps space for its title; only positive scores extend it.
+    // Zero uses an empty cover and negative scores use stripes plus a signed label.
+    const bookHeight = personal ? MIN_BOOK_HEIGHT_PERCENT + Math.max(0, values[idx]) / maximumScore * (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT) :
       MIN_BOOK_HEIGHT_PERCENT +
       (scorePercent / 100) *
         (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT);
     const row = el("div", {
-      className: `academy-book-item${key === activeKey ? " is-top" : ""}${personal && values[idx] < 0 ? " is-negative" : ""}`,
+      className: `academy-book-item${key === activeKey ? " is-top" : ""}${personal && values[idx] < 0 ? " is-negative" : ""}${personal && values[idx] === 0 ? " is-zero" : ""}`,
     });
     const bar = el("div", { className: "academy-book-bar" });
     const isLatinName = /[A-Za-z]/.test(academyName);
@@ -950,31 +1070,34 @@ function renderBarShelf(shelf, values, activeKey, personal = false) {
     });
     fill.style.height = "0%";
     fill.style.setProperty("--book-color", academyColors[key]);
-    fill.style.setProperty("--book-height", `${Math.round(bookHeight)}%`);
-    fill.appendChild(
-      el(
+    fill.style.setProperty("--book-height", `${bookHeight}%`);
+    const nameLabel = el(
         "span",
         {
           className: `academy-book-label academy-book-name${isLatinName ? " is-latin" : ""}`,
         },
         academyName,
-      ),
-    );
+      );
+    fill.appendChild(nameLabel);
     const edge = el("span", { className: "academy-book-edge" });
     edge.setAttribute("aria-hidden", "true");
     fill.appendChild(edge);
-    fill.appendChild(
-      el("span", { className: "academy-book-score" }, personal ? `${values[idx]} ${getResultCopy().scoreUnit}` : `${scorePercent}%`),
-    );
+    const bands = el("span", { className: "academy-book-bands" });
+    bands.setAttribute("aria-hidden", "true");
+    fill.appendChild(bands);
+    const scoreLabel = el("span", { className: "academy-book-score" }, personal ? `${values[idx]} ${getResultCopy().scoreUnit}` : `${scorePercent}%`);
+    fill.appendChild(scoreLabel);
     bar.appendChild(fill);
     row.appendChild(bar);
+    if (idx === 0 || idx === ACADEMY_ORDER.length - 1) {
+      const bookend = el("span", { className: `academy-bookend ${idx === 0 ? "is-left" : "is-right"}` });
+      bookend.setAttribute("aria-hidden", "true");
+      row.appendChild(bookend);
+    }
     shelf.appendChild(row);
-    setTimeout(
-      () => {
-        fill.style.height = fill.style.getPropertyValue("--book-height");
-      },
-      idx * 80 + 16,
-    );
+    const showBook = () => { fill.style.height = fill.style.getPropertyValue("--book-height"); };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) showBook();
+    else setTimeout(showBook, idx * 80 + 16);
   });
 }
 
@@ -989,11 +1112,11 @@ function getAcademyColors() {
     return window.ACADEMY_THEME.getAcademyColors();
   }
   return {
-    red: "#d85f5f",
-    green: "#91b66f",
-    blue: "#4f78a8",
-    black: "#1f1f1f",
-    white: "#c9c3b7",
+    red: "#b44b43",
+    green: "#5d7848",
+    blue: "#4d7395",
+    black: "#292b2c",
+    white: "#666b70",
   };
 }
 
@@ -1037,45 +1160,6 @@ function renderAcademyBookshelf(scoreList, activeKey) {
   }
 
   renderBarShelf(shelf, scoreList, activeKey, true);
-  renderScoreComparison(scoreList);
-}
-
-function renderScoreComparison(scoreList) {
-  const comparison = document.getElementById("academyScoreComparison");
-  if (!comparison) return;
-  comparison.innerHTML = "";
-  const copy = getResultCopy();
-  const model = window.QUIZ_RESULT_MODEL;
-  const bounds = model.getBounds(window.QUIZ_QUESTIONS[DEFAULT_LANG]);
-  const min = Math.min(0, ...bounds.map(bound => bound.min));
-  const max = Math.max(0, ...bounds.map(bound => bound.max));
-  const width = max - min || 1;
-  const zero = -min / width * 100;
-  const names = getUiTranslation().academyNames;
-  const colors = getAcademyColors();
-  comparison.style.setProperty("--score-zero", `${zero}%`);
-  ACADEMY_ORDER.forEach((key, i) => {
-    const score = scoreList[i];
-    const row = el("div", { className: "score-comparison-row" });
-    row.appendChild(el("span", { className: "score-comparison-name" }, names[key]));
-    const track = el("div", { className: "score-comparison-track" });
-    track.setAttribute("aria-hidden", "true");
-    const bar = el("span", { className: `score-comparison-fill${score < 0 ? " is-negative" : ""}` });
-    bar.style.left = `${score < 0 ? (score - min) / width * 100 : zero}%`;
-    bar.style.width = `${Math.abs(score) / width * 100}%`;
-    bar.style.setProperty("--score-color", colors[key]);
-    track.appendChild(bar);
-    row.appendChild(track);
-    row.appendChild(el("span", { className: "score-comparison-value" }, `${score} ${copy.scoreUnit}`));
-    comparison.appendChild(row);
-  });
-  const axis = el("div", { className: "score-comparison-axis" });
-  const labels = el("div", { className: "score-comparison-axis-labels" });
-  labels.appendChild(el("span", {}, String(min)));
-  labels.appendChild(el("span", { className: "score-zero-label" }, copy.zeroLabel));
-  labels.appendChild(el("span", { className: "score-max-label" }, String(max)));
-  axis.appendChild(labels);
-  comparison.appendChild(axis);
 }
 
 // ── 建立 DOM 元素的小工具 ───────────────────────────────────────────────────

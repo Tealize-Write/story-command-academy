@@ -4,11 +4,13 @@ const TOKEN = "__TOKEN__";
 
 function getClientId() {
   const key = "abyss_client_id";
-  let cid = localStorage.getItem(key);
+  let cid = window._quizClientId;
+  try { cid = localStorage.getItem(key) || cid; } catch {}
   if (!cid) {
     cid = `sc_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
-    localStorage.setItem(key, cid);
+    try { localStorage.setItem(key, cid); } catch {}
   }
+  window._quizClientId = cid;
   return cid;
 }
 
