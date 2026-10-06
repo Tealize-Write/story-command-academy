@@ -13,19 +13,24 @@ const ACADEMIES = [
 // Immersion flow constants (presentation-only, does not affect scoring).
 const PART_1_QUESTION_COUNT = 20;
 const QUESTION_ADVANCE_DELAY_MS = 280;
-const ANSWER_FEEDBACK_DURATION_MS = 180;
 
 // ── 狀態 ──────────────────────────────────────────────────────────────────
 let scores = [0, 0, 0, 0, 0]; // [red, green, blue, black, white]
 let qIndex = 0;
 let answerHistory = []; // 每題記錄玩家選了哪一個 option index
-let feedbackTimer = null;
 let advanceTimer = null;
 let advancing = false;
 let resultCompleted = false;
 let pendingTie = null;
 const RESULT_MODEL = window.QUIZ_RESULT_MODEL;
 const PENDING_TIE_KEY = "pendingAcademyTie";
+const DRAFT_KEY = "academyQuizDraft";
+let attemptId = "";
+let quizSource = "direct";
+let resumeRecord = null;
+let progressSaved = false;
+let seenStages = new Set();
+let renderedIndex = null;
 window.quizStartTime = 0; // 記錄測驗開始時間（用於計算 timeSpent）
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -41,25 +46,104 @@ const sectionLabel = document.getElementById("section-label");
 const sectionDesc = document.getElementById("section-desc");
 const questionCard = document.getElementById("question-card");
 const questionText = document.getElementById("question-text");
-const answerFeedback = document.getElementById("answer-feedback");
 const optionsContainer = document.getElementById("options-container");
 const HAS_QUIZ_UI = !!questionText;
 const tieDecision = document.getElementById("tie-decision");
+const resumeCard = document.getElementById("resume-card");
+const previousButton = document.getElementById("previous-question");
+const continueButton = document.getElementById("continue-answer");
 
 // ── 入口 ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   if (!HAS_QUIZ_UI) return;
-  if (!restoreTieDecision()) startQuiz();
-
+  previousButton.onclick = previousQuestion;
+  continueButton.onclick = continueAnswer;
+  document.getElementById("resume-quiz").onclick = resumeQuiz;
+  document.getElementById("restart-quiz").onclick = startQuiz;
   document.addEventListener("langChanged", onLangChanged);
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("restart") === "1") {
+    params.delete("restart");
+    history.replaceState(null, "", `${location.pathname}?${params}`);
+    startQuiz();
+    return;
+  }
+  if (restoreTieDecision()) return;
+  resumeRecord = readQuizRecord(DRAFT_KEY);
+  if (RESULT_MODEL.validDraft(resumeRecord, QUIZ_QUESTIONS[currentLang]) && resumeRecord.answers.length) {
+    const completed = readQuizRecord("latestAcademyScores");
+    if (completed?.completionId === resumeRecord.attemptId && RESULT_MODEL.validResult(completed, completed.primary, QUIZ_QUESTIONS[currentLang])) {
+      removeQuizRecord(DRAFT_KEY);
+      showCompletedResult(completed);
+    } else renderResumeCard();
+  } else startQuiz();
 });
 
 function onLangChanged() {
-  if (!HAS_QUIZ_UI) return;
+  if (!HAS_QUIZ_UI || resultCompleted) return;
+  if (resumeRecord) { renderResumeCard(); return; }
   if (pendingTie) { renderTieDecision(); return; }
   updateProgressText();
-  updateAnswerFeedbackText();
+  updateSaveStatus();
   if (!advancing) renderQuestion();
+}
+
+function readQuizRecord(key) {
+  return RESULT_MODEL.read(RESULT_MODEL.storage("localStorage"), key) || RESULT_MODEL.read(RESULT_MODEL.storage(), key);
+}
+
+function writeQuizRecord(key, record) {
+  const persistent = RESULT_MODEL.write(RESULT_MODEL.storage("localStorage"), key, record);
+  const temporary = RESULT_MODEL.write(RESULT_MODEL.storage(), key, record);
+  return { persistent, saved: persistent || temporary };
+}
+
+function removeQuizRecord(key) {
+  RESULT_MODEL.remove(RESULT_MODEL.storage("localStorage"), key);
+  RESULT_MODEL.remove(RESULT_MODEL.storage(), key);
+}
+
+function newAttemptId() {
+  return window.crypto?.randomUUID?.() || `quiz_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+function saveProgress() {
+  const record = { version: RESULT_MODEL.VERSION, attemptId, answers: [...answerHistory], currentIndex: qIndex,
+    startedAt: window.quizStartTime, source: quizSource, seenStages: [...seenStages] };
+  progressSaved = writeQuizRecord(DRAFT_KEY, record).persistent;
+  updateSaveStatus();
+}
+
+function updateSaveStatus() {
+  const status = document.getElementById("save-status");
+  if (status) status.textContent = UI_TRANSLATIONS[currentLang][progressSaved ? "progressSaved" : "progressSaveFailed"];
+}
+
+function renderResumeCard() {
+  hide(progressArea, sectionCard, questionCard, tieDecision);
+  show(resumeCard);
+  const t = UI_TRANSLATIONS[currentLang], total = QUIZ_QUESTIONS[currentLang].length;
+  document.getElementById("resume-description").textContent = resumeRecord.currentIndex === total ? t.resumeCompleted :
+    t.resumeDescription.replace("{answered}", resumeRecord.answers.length).replace("{total}", total).replace("{cur}", resumeRecord.currentIndex + 1);
+  document.getElementById("resume-title").focus({ preventScroll: true });
+  document.getElementById("save-status").textContent = "";
+}
+
+function resumeQuiz() {
+  if (!resumeRecord) return;
+  answerHistory = [...resumeRecord.answers];
+  qIndex = resumeRecord.currentIndex;
+  attemptId = resumeRecord.attemptId;
+  quizSource = resumeRecord.source;
+  window.quizStartTime = resumeRecord.startedAt;
+  seenStages = new Set(resumeRecord.seenStages || []);
+  renderedIndex = null;
+  scores = RESULT_MODEL.scoreAnswers(answerHistory, QUIZ_QUESTIONS[currentLang], true);
+  resumeRecord = null;
+  saveProgress();
+  hide(resumeCard);
+  if (qIndex === QUIZ_QUESTIONS[currentLang].length) showResult();
+  else { show(progressArea, sectionCard, questionCard); renderQuestion(true); }
 }
 
 // ── 區塊顯示（第一大題 / 第二大題）──────────────────────────────────────
@@ -69,15 +153,25 @@ function updateSectionHeader() {
   sectionBadge.textContent = isPart1 ? t.part1Badge : t.part2Badge;
   sectionLabel.textContent = isPart1 ? t.part1Label : t.part2Label;
   sectionDesc.textContent = isPart1 ? t.part1Desc : t.part2Transition;
+  const stage = isPart1 ? 0 : 1;
+  const firstVisit = !seenStages.has(stage);
+  if (renderedIndex !== qIndex) sectionCard.open = firstVisit;
+  seenStages.add(stage);
+  return firstVisit;
 }
 
 function startQuiz() {
   clearTimeout(advanceTimer);
-  clearTimeout(feedbackTimer);
   advancing = false;
   resultCompleted = false;
   pendingTie = null;
-  RESULT_MODEL.remove(RESULT_MODEL.storage(), PENDING_TIE_KEY);
+  resumeRecord = null;
+  removeQuizRecord(PENDING_TIE_KEY);
+  removeQuizRecord(DRAFT_KEY);
+  attemptId = newAttemptId();
+  quizSource = getTrafficSource();
+  seenStages = new Set();
+  renderedIndex = null;
   qIndex = 0;
   scores = [0, 0, 0, 0, 0];
   answerHistory = [];
@@ -87,18 +181,14 @@ function startQuiz() {
     fetch(GAS_URL, { keepalive: true }).catch(() => {});
   }
   show(progressArea, sectionCard);
-  hide(calibrationCard, chapterTransition, tieDecision);
+  hide(calibrationCard, chapterTransition, tieDecision, resumeCard);
   show(questionCard);
-  renderQuestion();
-}
-
-function renderQuestionWithTransition() {
-  // Legacy wrapper retained to avoid touching call sites.
-  renderQuestion();
+  saveProgress();
+  renderQuestion(true);
 }
 
 // ── 題目渲染 ──────────────────────────────────────────────────────────────
-function renderQuestion() {
+function renderQuestion(focus = false) {
   const questions = QUIZ_QUESTIONS[currentLang];
   const q = questions[qIndex];
   if (!q) return;
@@ -110,14 +200,19 @@ function renderQuestion() {
   progressFill.style.width = pct + "%";
   updateProgressText({ cur, total });
 
-  updateSectionHeader();
+  const firstVisit = updateSectionHeader();
+  renderedIndex = qIndex;
   questionText.textContent = q.text;
 
   optionsContainer.innerHTML = "";
   q.options.forEach((opt, i) => {
     const btn = document.createElement("button");
-    btn.className = "quiz-option-btn";
-    btn.textContent = opt.label;
+    btn.className = "quiz-option-btn" + (qIndex < PART_1_QUESTION_COUNT ? " degree-option" : "");
+    btn.type = "button";
+    btn.textContent = qIndex < PART_1_QUESTION_COUNT ? UI_TRANSLATIONS[currentLang]["opt" + (3 - i)] : opt.label.replace(/^\([A-Z]\)\s*/, "");
+    const selected = answerHistory[qIndex] === i;
+    btn.classList.toggle("selected", selected);
+    btn.setAttribute("aria-pressed", String(selected));
     btn.onclick = () => selectOption(opt.scores, btn, i);
     optionsContainer.appendChild(btn);
   });
@@ -125,6 +220,13 @@ function renderQuestion() {
   // 淡入動畫
   questionCard.classList.remove("fade-in");
   requestAnimationFrame(() => questionCard.classList.add("fade-in"));
+  previousButton.disabled = qIndex === 0;
+  continueButton.disabled = !Number.isInteger(answerHistory[qIndex]);
+  if (firstVisit) saveProgress();
+  if (focus) {
+    questionText.focus({ preventScroll: true });
+    questionText.scrollIntoView({ block: "start", behavior: "instant" });
+  }
 }
 
 function selectOption(optScores, btn, optIdx) {
@@ -134,20 +236,34 @@ function selectOption(optScores, btn, optIdx) {
     .querySelectorAll(".quiz-option-btn")
     .forEach((b) => (b.disabled = true));
   btn.classList.add("selected");
-  showAnswerFeedback();
-
-  answerHistory[qIndex] = optIdx; // 記錄答題歷史（平局解析用）
-  optScores.forEach((v, i) => {
-    scores[i] += v;
-  });
+  btn.setAttribute("aria-pressed", "true");
+  previousButton.disabled = true;
+  continueButton.disabled = true;
+  answerHistory[qIndex] = optIdx;
+  scores = RESULT_MODEL.scoreAnswers(answerHistory, QUIZ_QUESTIONS[currentLang], true);
   qIndex++;
+  saveProgress();
 
   const questions = QUIZ_QUESTIONS[currentLang];
   advanceTimer = setTimeout(() => {
     advancing = false;
-    if (qIndex < questions.length) renderQuestionWithTransition();
+    if (qIndex < questions.length) renderQuestion(true);
     else showResult();
   }, QUESTION_ADVANCE_DELAY_MS);
+}
+
+function previousQuestion() {
+  if (advancing || pendingTie || resultCompleted || qIndex <= 0) return;
+  clearTimeout(advanceTimer);
+  qIndex--;
+  saveProgress();
+  renderQuestion(true);
+}
+
+function continueAnswer() {
+  const answer = answerHistory[qIndex];
+  const option = QUIZ_QUESTIONS[currentLang][qIndex]?.options[answer];
+  if (option) selectOption(option.scores, optionsContainer.children[answer], answer);
 }
 
 function updateProgressText(metrics) {
@@ -165,25 +281,6 @@ function updateProgressText(metrics) {
         ? "30 questions total: 20 degree questions + 10 part-II choices."
         : "本測驗共 30 題：程度題 20 題＋選擇題 10 題。");
   }
-}
-
-function showAnswerFeedback() {
-  if (!answerFeedback) return;
-  const t = UI_TRANSLATIONS[currentLang];
-  const pool = t.answerFeedbacks || [];
-  if (!pool.length) return;
-  answerFeedback.textContent = pool[Math.floor(Math.random() * pool.length)];
-  answerFeedback.classList.add("is-visible");
-  clearTimeout(feedbackTimer);
-  feedbackTimer = setTimeout(() => {
-    answerFeedback.classList.remove("is-visible");
-  }, ANSWER_FEEDBACK_DURATION_MS);
-}
-
-function updateAnswerFeedbackText() {
-  if (!answerFeedback || !answerFeedback.classList.contains("is-visible"))
-    return;
-  showAnswerFeedback();
 }
 
 // ── 結果 ──────────────────────────────────────────────────────────────────
@@ -223,13 +320,15 @@ function showResult() {
   }, []);
   if (topIndices.length > 1) {
     pendingTie = {
+      attemptId,
       version: RESULT_MODEL.VERSION,
       answers: [...answerHistory],
       scores: [...scores],
       startedAt: window.quizStartTime,
-      source: getTrafficSource(),
+      source: quizSource,
     };
-    RESULT_MODEL.write(RESULT_MODEL.storage(), PENDING_TIE_KEY, pendingTie);
+    progressSaved = writeQuizRecord(PENDING_TIE_KEY, pendingTie).persistent;
+    updateSaveStatus();
     renderTieDecision();
     return;
   }
@@ -237,7 +336,7 @@ function showResult() {
 }
 
 function restoreTieDecision() {
-  const record = RESULT_MODEL.read(RESULT_MODEL.storage(), PENDING_TIE_KEY);
+  const record = readQuizRecord(PENDING_TIE_KEY);
   if (record?.version !== RESULT_MODEL.VERSION) return false;
   const restoredScores = RESULT_MODEL.scoreAnswers(record.answers, QUIZ_QUESTIONS[currentLang]);
   if (!restoredScores || !RESULT_MODEL.validScores(record.scores, QUIZ_QUESTIONS[currentLang]) ||
@@ -249,13 +348,17 @@ function restoreTieDecision() {
   qIndex = answerHistory.length;
   window.quizStartTime = record.startedAt;
   pendingTie = record;
+  attemptId = record.attemptId || newAttemptId();
+  quizSource = record.source || "direct";
+  progressSaved = writeQuizRecord(PENDING_TIE_KEY, { ...record, attemptId }).persistent;
+  updateSaveStatus();
   renderTieDecision();
   return true;
 }
 
 function renderTieDecision() {
   const t = UI_TRANSLATIONS[currentLang];
-  hide(progressArea, sectionCard, questionCard);
+  hide(progressArea, sectionCard, questionCard, resumeCard);
   show(tieDecision);
   document.getElementById("tie-title").textContent = t.tieDecisionTitle;
   document.getElementById("tie-description").textContent = t.tieDecisionDesc;
@@ -284,6 +387,8 @@ function completeResult(primaryTop, selectionSource) {
   resultCompleted = true;
   tieDecision?.querySelectorAll("button").forEach(button => { button.disabled = true; });
   const result = {
+    completionId: attemptId,
+    submissionStatus: "attempted",
     version: RESULT_MODEL.VERSION,
     scores: [...scores],
     answers: [...answerHistory],
@@ -291,11 +396,34 @@ function completeResult(primaryTop, selectionSource) {
     selectionSource,
     savedAt: Date.now(),
   };
-  RESULT_MODEL.write(RESULT_MODEL.storage(), "latestAcademyScores", result);
+  const prior = readQuizRecord("latestAcademyScores");
+  const alreadySubmitted = prior?.completionId === attemptId && prior?.submissionStatus === "attempted";
+  if (alreadySubmitted && RESULT_MODEL.validResult(prior, prior.primary, QUIZ_QUESTIONS[currentLang])) {
+    removeQuizRecord(PENDING_TIE_KEY);
+    removeQuizRecord(DRAFT_KEY);
+    pendingTie = null;
+    showCompletedResult(prior);
+    return;
+  }
+  const saved = writeQuizRecord("latestAcademyScores", result);
+  result.memoryOnly = !saved.persistent;
+  if (result.memoryOnly && saved.saved) RESULT_MODEL.write(RESULT_MODEL.storage(), "latestAcademyScores", result);
   submitToGAS(scores, primaryTop);
-  RESULT_MODEL.remove(RESULT_MODEL.storage(), PENDING_TIE_KEY);
+  removeQuizRecord(PENDING_TIE_KEY);
+  removeQuizRecord(DRAFT_KEY);
   pendingTie = null;
-  window.location.href = `index.html?page=result&academy=${primaryTop}`;
+  showCompletedResult(result);
+}
+
+function showCompletedResult(result) {
+  resultCompleted = true;
+  window.currentQuizResult = result;
+  history.replaceState(null, "", `index.html?page=result&academy=${result.primary}`);
+  document.body.dataset.page = "result";
+  document.getElementById("page-root").innerHTML = '<div id="result-wrap"></div>';
+  applyLang(currentLang);
+  initializeResultPage();
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 // ── GAS 提交 ──────────────────────────────────────────────────────────────
@@ -310,7 +438,7 @@ function submitToGAS(scoreArr, topKey) {
     clientId: getClientId(),
     keyword: topKey,
     action: "quiz_completed",
-    source: pendingTie?.source || getTrafficSource(),
+    source: pendingTie?.source || quizSource,
     referrer: document.referrer || "",
     device: getDeviceType(),
     country: location.country,

@@ -83,6 +83,7 @@
     <script src="js/i18n.js"></script>
     <script src="js/translation.js"></script>
     <script src="js/academy-theme.js"></script>
+    <script src="js/academy-stats.js"></script>
     <script>
       // ── GAS 設定（使用共享 config） ───────────────────────────────────────
       const GAS_STATS_URL = GAS_URL;
@@ -137,6 +138,13 @@
 
         statsMessageState = type || "none";
 
+        if (statsMessageState !== "none" && statsMessageState !== "loading") {
+          document.getElementById("stats-total").textContent = "";
+          for (const id of ["donut-title", "donut-wrap", "bar-title", "bar-wrap"]) {
+            document.getElementById(id).style.display = "none";
+          }
+        }
+
         if (statsMessageState === "loading") {
           loadingEl.style.display = "";
           errorEl.style.display = "none";
@@ -178,13 +186,7 @@
         try {
           renderStatsMessage("loading");
 
-          const res = await fetch(GAS_STATS_URL);
-          const json = await res.json();
-
-          if (!json || typeof json !== "object" || !json.counts) {
-            renderStatsMessage("empty");
-            return;
-          }
+          const json = await window.ACADEMY_STATS.load(GAS_STATS_URL);
 
           // 預期格式：{ counts: { red:12, green:8, blue:5, black:3, white:7 }, total: 35 }
           renderCharts(json.counts, json.total);

@@ -8,8 +8,10 @@ const vm = require('node:vm');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/CODE/Github_Mine/Oblivraith-game/Oblivraith-Game/node_modules/playwright');
 const output = path.resolve('artifacts/player-review/phase1');
 
-test('phase 1 result rendering and quiz completion', { timeout: 120000 }, async () => {
+test('quiz progress, compact layout, result rendering and completion', { timeout: 120000 }, async () => {
   fs.mkdirSync(output, { recursive: true });
+  const progressOutput = path.resolve('artifacts/player-review/phase2');
+  fs.mkdirSync(progressOutput, { recursive: true });
   const root = process.cwd();
   const server = http.createServer((req, res) => {
     const pathname = new URL(req.url, 'http://localhost').pathname;
@@ -24,6 +26,7 @@ test('phase 1 result rendering and quiz completion', { timeout: 120000 }, async 
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   const errors = [], posts = [], observations = [];
+  let statsFixture = { counts: { red: 5, green: 10, blue: 15, black: 10, white: 10 }, total: 50 };
   let browser;
   try {
     browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_EXECUTABLE || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' });
@@ -33,29 +36,147 @@ test('phase 1 result rendering and quiz completion', { timeout: 120000 }, async 
       if (url.pathname === '/js/config.js') return route.fulfill({ contentType: 'text/javascript', body: `const GAS_URL = '${base}/analytics'; function getClientId(){return 'test';} function getTrafficSource(){return new URLSearchParams(location.search).get('source') || 'direct';} function getDeviceType(){return 'test';} function getLocationPayload(){return {country:'unknown',city:'unknown'};}` });
       if (url.pathname === '/analytics') {
         if (route.request().method() === 'POST') posts.push(JSON.parse(route.request().postData()));
-        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ counts: { red: 5, green: 10, blue: 15, black: 10, white: 10 }, total: 50 }) });
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(statsFixture) });
       }
+      if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.endsWith('/chart.js')) return route.fulfill({ contentType: 'text/javascript', body: 'window.Chart = class { destroy() {} };' });
       return url.hostname === '127.0.0.1' ? route.continue() : route.abort();
     });
     const page = await context.newPage();
     page.on('pageerror', err => errors.push(err.message));
     await page.goto(base);
+    await page.goto(`${base}/index.html?page=quiz&restart=1&source=progress-test`);
+    assert.equal(await page.locator('#previous-question').isDisabled(), true);
+    assert.equal(await page.locator('#section-card').getAttribute('open'), '');
+    await page.evaluate(() => scrollTo(0, 0));
+    assert.ok((await page.locator('#question-text').boundingBox()).y < 250);
+    assert.equal(await page.locator('.degree-option').count(), 4);
+    await page.screenshot({ path: path.join(progressOutput, 'mobile-quiz.png'), animations: 'disabled' });
+    await page.locator('.quiz-option-btn').nth(1).click();
+    await page.evaluate(() => document.querySelector('.quiz-option-btn').click());
+    await page.waitForFunction(() => qIndex === 1 && !advancing);
+    assert.equal(await page.evaluate(() => answerHistory.length), 1);
+    assert.equal(await page.locator('#section-card').getAttribute('open'), null);
+    await page.locator('#previous-question').click();
+    assert.equal(await page.locator('.quiz-option-btn').nth(1).getAttribute('aria-pressed'), 'true');
+    await page.locator('.quiz-option-btn').nth(2).click();
+    await page.waitForFunction(() => qIndex === 1 && !advancing);
+    await page.locator('.quiz-option-btn').nth(0).click();
+    await page.waitForFunction(() => qIndex === 2 && !advancing);
+    const edited = await page.evaluate(() => ({ scores, answers: answerHistory, startedAt: quizStartTime,
+      expected: QUIZ_QUESTIONS[currentLang][0].options[2].scores.map((score, i) => score + QUIZ_QUESTIONS[currentLang][1].options[0].scores[i]) }));
+    assert.deepEqual(edited.scores, edited.expected);
+    assert.deepEqual(edited.answers, [2, 0]);
+    await page.locator('#previous-question').click();
+    await page.locator('#previous-question').click();
+    await page.locator('#continue-answer').click();
+    await page.waitForFunction(() => qIndex === 1 && !advancing);
+    assert.deepEqual(await page.evaluate(() => scores), edited.scores);
+    await page.reload();
+    await page.locator('#resume-card').waitFor({ state: 'visible' });
+    await page.screenshot({ path: path.join(progressOutput, 'mobile-resume.png'), animations: 'disabled' });
+    await page.evaluate(() => applyLang('en'));
+    assert.equal(await page.locator('#resume-quiz').innerText(), 'Continue quiz');
+    await page.locator('#resume-quiz').click();
+    assert.equal(await page.evaluate(() => qIndex), 1);
+    assert.equal(await page.evaluate(() => quizStartTime), edited.startedAt);
+    assert.deepEqual(await page.evaluate(() => scores), edited.scores);
+    assert.equal(await page.locator('.quiz-option-btn').nth(0).getAttribute('aria-pressed'), 'true');
+    const reopened = await context.newPage();
+    await reopened.goto(`${base}/index.html?page=quiz`);
+    await reopened.locator('#resume-card').waitFor({ state: 'visible' });
+    await reopened.locator('#resume-quiz').click();
+    assert.equal(await reopened.evaluate(() => qIndex), 1);
+    assert.equal(await reopened.evaluate(() => quizSource), 'progress-test');
+    assert.deepEqual(await reopened.evaluate(() => scores), edited.scores);
+    await reopened.close();
+
+    // Cross the chapter boundary and return without changing the saved answers.
+    await page.goto(`${base}/index.html?page=quiz&restart=1`);
+    await page.evaluate(() => {
+      answerHistory = Array(20).fill(3); qIndex = 20;
+      scores = QUIZ_RESULT_MODEL.scoreAnswers(answerHistory, QUIZ_QUESTIONS[currentLang], true);
+      saveProgress(); renderQuestion(true);
+    });
+    assert.equal(await page.locator('.degree-option').count(), 0);
+    assert.equal(await page.locator('#section-card').getAttribute('open'), '');
+    assert.equal(/^\([A-Z]\)/.test(await page.locator('.quiz-option-btn').first().innerText()), false);
+    await page.locator('#previous-question').click();
+    assert.equal(await page.locator('.degree-option').count(), 4);
+    await page.locator('#continue-answer').click();
+    await page.waitForFunction(() => qIndex === 20 && !advancing);
+    assert.equal(await page.locator('#section-card').getAttribute('open'), null);
+    await page.setViewportSize({ width: 320, height: 720 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => {
+      for (const storage of [localStorage, sessionStorage]) storage.setItem('academyQuizDraft', JSON.stringify({ version: 'old', answers: [999], currentIndex: 99 }));
+    });
+    await page.reload();
+    assert.equal(await page.locator('#resume-card').isVisible(), false);
+    assert.equal(await page.evaluate(() => qIndex), 0);
+    await page.evaluate(() => applyLang('zh-TW'));
+
     async function showScores(scores, primary, lang = 'zh-TW') {
+      if (!await page.evaluate(() => typeof QUIZ_RESULT_MODEL !== 'undefined')) await page.goto(base);
       await page.evaluate(({ scores, primary, lang }) => {
         localStorage.setItem('lang', lang);
         sessionStorage.setItem('latestAcademyScores', JSON.stringify({ version: QUIZ_RESULT_MODEL.VERSION, scores, primary, selectionSource: 'automatic' }));
       }, { scores, primary, lang });
       await page.goto(`${base}/index.html?page=result&academy=${primary}`);
-      await page.waitForFunction(() => document.querySelectorAll('#academyScoreComparison .score-comparison-row').length === 5);
+      await page.waitForFunction(() => document.querySelectorAll('#academyBookShelf .academy-book-score').length === 5);
     }
     await showScores([6, 8, 25, 12, 7], 'blue');
-    assert.deepEqual(await page.locator('.result-report-wrap > .res_ack .res_ack-title').allTextContents(), ['── 藍行 ──', '藍行學院的創作視角', '次高傾向：墨佇']);
+    assert.deepEqual(await page.locator('.result-details > .res_ack .res_ack-title').allTextContents(), ['── 藍行 ──', '藍行學院的創作視角', '次高傾向：墨佇']);
     assert.equal(await page.locator('.result-explore').getAttribute('open'), null);
+    assert.equal(await page.locator('.result-reasons').count(), 0);
+    assert.equal(await page.locator('.result-score-details').count(), 0);
+    assert.deepEqual(await page.locator('.result-reading-link').evaluateAll(links => links.map(link => link.href)), [
+      'https://www.penana.com/story/16766/', 'https://www.kadokado.com.tw/book/1425',
+      'https://cxc.today/zh/store/ApatiteBlue/work/20217',
+    ]);
+    assert.deepEqual(await page.locator('.result-social-link').evaluateAll(links => links.map(link => ({ name: link.getAttribute('aria-label'),
+      href: link.href, icon: !!link.querySelector('svg'), rel: link.rel }))), [
+      { name: 'Facebook', href: 'https://www.facebook.com/TealizeWrite/', icon: true, rel: 'noopener noreferrer' },
+      { name: 'Instagram', href: 'https://www.instagram.com/tealize_write/', icon: true, rel: 'noopener noreferrer' },
+      { name: 'Threads', href: 'https://www.threads.com/@tealize_write', icon: true, rel: 'noopener noreferrer' },
+      { name: 'Plurk', href: 'https://www.plurk.com/Tealize', icon: true, rel: 'noopener noreferrer' },
+    ]);
     await page.waitForFunction(() => document.querySelectorAll('#academyGlobalBookShelf .academy-book-score').length === 5);
     assert.deepEqual(await page.locator('#academyGlobalBookShelf .academy-book-score').allTextContents(), ['10%', '20%', '30%', '20%', '20%']);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.screenshot({ path: path.join(output, 'desktop-result.png'), fullPage: true, animations: 'disabled' });
+    await page.locator('.result-connections').screenshot({ path: path.join(progressOutput, 'desktop-result-links.png'), animations: 'disabled' });
+    // One condensed portrait follows the actual secondary ranking below the name.
+    for (const primary of ['red', 'green', 'blue', 'black', 'white']) {
+      const scores = [6, 5, 7, 6, 6];
+      scores[['red', 'green', 'blue', 'black', 'white'].indexOf(primary)] = 12;
+      await showScores(scores, primary);
+      const summary = await page.locator('.result-preference').innerText();
+      assert.equal(await page.locator('.result-winner-box .result-preference').count(), 1);
+      assert.equal(await page.locator('#result-winner-name + .result-secondary + .result-preference').count(), 1);
+      if (primary === 'black') {
+        assert.equal(await page.locator('.result-secondary-label').innerText(), '次高傾向：藍行');
+        assert.ok(summary.includes('文字') && summary.includes('邏輯'));
+        assert.ok(summary.length < 65);
+        await page.evaluate(() => applyLang('en'));
+        assert.equal(await page.locator('.result-secondary-label').innerText(), 'Secondary preference: Cerulink');
+        const englishSummary = await page.locator('.result-preference').innerText();
+        assert.ok(englishSummary.includes('language') && englishSummary.includes('logic'));
+        await page.evaluate(() => applyLang('zh-TW'));
+      }
+      const winner = await page.locator('.result-winner-box').boundingBox();
+      const shelf = await page.locator('#academyBookShelf').boundingBox();
+      const scrollOffset = await page.evaluate(() => scrollY);
+      await page.screenshot({ path: path.join(progressOutput, `desktop-academy-${primary}.png`),
+        fullPage: true, clip: { x: winner.x, y: winner.y + scrollOffset, width: winner.width, height: shelf.y + shelf.height - winner.y }, animations: 'disabled' });
+    }
+    await showScores([6, 5, 7, 12, 6], 'black');
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => document.querySelector('.result-winner-box').scrollIntoView({ block: 'start' }));
+    await page.screenshot({ path: path.join(progressOutput, 'mobile-academy-black.png'), animations: 'disabled' });
+    await showScores([6, 8, 25, 12, 7], 'blue');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('.result-connections').screenshot({ path: path.join(progressOutput, 'mobile-result-links.png'), animations: 'disabled' });
 
     for (const [name, scores, primary] of [
       ['negative', [17, 10, -3, 9, 10], 'red'],
@@ -66,22 +187,36 @@ test('phase 1 result rendering and quiz completion', { timeout: 120000 }, async 
       await showScores(scores, primary);
       const labels = await page.locator('#academyBookShelf .academy-book-score').allTextContents();
       assert.deepEqual(labels, scores.map(score => `${score} 分`));
-      assert.equal((await page.locator('#academyScoreComparison').innerText()).includes('%'), false);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-      const geometry = await page.locator('.score-comparison-fill').evaluateAll(bars => bars.map(bar => ({ left: parseFloat(bar.style.left), width: parseFloat(bar.style.width) })));
-      for (const bar of geometry) assert.ok(Number.isFinite(bar.left) && Number.isFinite(bar.width) && bar.left >= 0 && bar.width >= 0 && bar.left + bar.width <= 100.000001);
+      await page.waitForFunction(() => [...document.querySelectorAll('#academyBookShelf .academy-score-book')].every(book => Math.abs(parseFloat(book.style.height) - parseFloat(book.style.getPropertyValue('--book-height'))) < 0.001));
+      const geometry = await page.locator('#academyBookShelf .academy-score-book').evaluateAll(books => books.map(book => ({
+        height: book.getBoundingClientRect().height,
+        plotHeight: book.parentElement.getBoundingClientRect().height,
+        empty: book.closest('.academy-book-item').classList.contains('is-zero'),
+        negative: book.closest('.academy-book-item').classList.contains('is-negative'),
+        nameInside: !!book.querySelector('.academy-book-name'),
+      })));
+      geometry.forEach((book, i) => {
+        assert.ok(book.height >= 82 && book.height <= book.plotHeight);
+        assert.equal(book.empty, scores[i] === 0);
+        assert.equal(book.negative, scores[i] < 0);
+        assert.equal(book.nameInside, true);
+      });
+      for (let i = 0; i < scores.length; i++) for (let j = 0; j < scores.length; j++) {
+        if (scores[i] > Math.max(0, scores[j])) assert.ok(geometry[i].height > geometry[j].height);
+      }
       observations.push({ name, labels, geometry });
       if (name === 'negative') await page.screenshot({ path: path.join(output, 'mobile-negative-result.png'), fullPage: true, animations: 'disabled' });
-      if (name === 'secondary-tie') assert.equal(await page.locator('.result-report-wrap > .res_ack').count(), 4);
-      if (name === 'zero') assert.equal(await page.locator('.result-report-wrap > .res_ack').count(), 6);
+      if (name === 'secondary-tie') assert.equal(await page.locator('.result-details > .res_ack').count(), 4);
+      if (name === 'zero') assert.equal(await page.locator('.result-details > .res_ack').count(), 6);
     }
     await showScores([6, 8, 25, 12, 7], 'blue', 'en');
-    assert.ok((await page.locator('.result-report-wrap > .res_ack .res_ack-title').allTextContents()).includes('Secondary preference: Inkarbor'));
+    assert.ok((await page.locator('.result-details > .res_ack .res_ack-title').allTextContents()).includes('Secondary preference: Inkarbor'));
     await page.evaluate(() => applyLang('zh-TW'));
-    assert.ok((await page.locator('.result-report-wrap > .res_ack .res_ack-title').allTextContents()).includes('次高傾向：墨佇'));
+    assert.ok((await page.locator('.result-details > .res_ack .res_ack-title').allTextContents()).includes('次高傾向：墨佇'));
     await page.goto(`${base}/index.html?page=result&academy=red`);
     assert.equal(await page.locator('.res_title').innerText(), '學院介紹');
-    assert.equal(await page.locator('.score-comparison-row').count(), 0);
+    assert.equal(await page.locator('.score-breakdown-table tbody tr').count(), 0);
     await page.evaluate(() => sessionStorage.setItem('latestAcademyScores', '{bad json'));
     await page.reload();
     assert.equal(await page.locator('.res_title').innerText(), '學院介紹');
@@ -95,12 +230,65 @@ test('phase 1 result rendering and quiz completion', { timeout: 120000 }, async 
       await page.locator('.quiz-option-btn').nth(persona[i]).click();
     }
     await page.waitForURL('**/*page=result*');
-    await page.waitForFunction(() => document.querySelectorAll('.score-comparison-row').length === 5);
+    await page.waitForFunction(() => document.querySelectorAll('#academyBookShelf .academy-book-score').length === 5);
     const completed = await page.evaluate(() => JSON.parse(sessionStorage.getItem('latestAcademyScores')));
     assert.deepEqual(completed.scores, [6, 8, 28, 9, 7]);
     assert.equal(completed.primary, 'blue');
+    assert.equal(await page.locator('.result-details').evaluate(node => node.tagName), 'SECTION');
+    assert.equal(await page.locator('.result-reasons').count(), 0);
+    assert.equal(await page.evaluate(() => localStorage.getItem('academyQuizDraft')), null);
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('academyQuizDraft')), null);
+    const position = await page.evaluate(() => {
+      const box = selector => document.querySelector(selector).getBoundingClientRect();
+      return { winner: box('.result-winner-box').bottom, shelf: box('#academyBookShelf').top,
+        shelfBottom: box('#academyBookShelf').bottom,
+        details: box('.result-details').top, retake: box('#retake-quiz').top };
+    });
+    assert.ok(position.winner < position.shelf && position.shelfBottom < position.details && position.details < position.retake);
+    assert.equal(await page.locator('.score-comparison-fill').count(), 0);
+    assert.equal(await page.locator('#retake-quiz').count(), 1);
+    assert.equal(await page.locator('.result-score-details').count(), 0);
+    const lastMain = page.locator('.result-details > .res_ack').first().locator('.res_ack-desc').last();
+    assert.equal(await lastMain.isVisible(), true);
+    assert.equal(await lastMain.innerText(), await page.evaluate(() => getResultContent('zh-TW').blue.main.at(-1)));
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({ path: path.join(progressOutput, 'mobile-result-summary.png'), animations: 'disabled' });
+    await page.locator('.result-explore > summary').click();
+    await page.evaluate(() => applyLang('en'));
+    assert.equal(await page.locator('.result-explore').getAttribute('open'), '');
+    assert.equal(await page.locator('#result-works-title').innerText(), 'The Story Behind the Academies');
+    assert.equal(await lastMain.isVisible(), true);
+    assert.equal(await lastMain.innerText(), await page.evaluate(() => getResultContent('en').blue.main.at(-1)));
+    await page.evaluate(() => applyLang('zh-TW'));
+    assert.equal(await page.locator('.result-explore').getAttribute('open'), '');
+    await page.setViewportSize({ width: 320, height: 720 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.evaluate(() => applyLang('en'));
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.locator('#academyBookShelf').screenshot({ path: path.join(progressOutput, 'mobile-bookshelf-en-320.png'), animations: 'disabled' });
+    await page.locator('.result-connections').screenshot({ path: path.join(progressOutput, 'mobile-result-links-en-320.png'), animations: 'disabled' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => applyLang('zh-TW'));
     assert.equal(posts.length - beforeUnique, 1);
     await page.reload();
+    assert.equal(posts.length - beforeUnique, 1);
+    await page.evaluate(completed => {
+      localStorage.setItem('academyQuizDraft', JSON.stringify({ version: completed.version, attemptId: completed.completionId,
+        answers: completed.answers, currentIndex: completed.answers.length, startedAt: completed.savedAt, source: 'test', seenStages: [0, 1] }));
+    }, completed);
+    await page.goto(`${base}/index.html?page=quiz`);
+    await page.waitForURL('**/*page=result*');
+    assert.equal(await page.evaluate(() => localStorage.getItem('academyQuizDraft')), null);
+    assert.equal(posts.length - beforeUnique, 1);
+    await page.locator('#retake-quiz').click();
+    await page.waitForURL('**/*page=quiz*');
+    await page.locator('#question-card').waitFor({ state: 'visible' });
+    assert.equal(await page.evaluate(() => qIndex), 0);
+    assert.deepEqual(await page.evaluate(() => answerHistory), []);
+    assert.equal(await page.locator('#resume-card').isVisible(), false);
+    assert.notEqual(await page.evaluate(() => attemptId), completed.completionId);
+    await page.reload();
+    assert.equal(await page.evaluate(() => qIndex), 0);
     assert.equal(posts.length - beforeUnique, 1);
 
     // Find a legitimate full answer sequence with a top-score tie.
@@ -129,16 +317,18 @@ test('phase 1 result rendering and quiz completion', { timeout: 120000 }, async 
     await page.reload();
     await page.locator('#tie-decision').waitFor({ state: 'visible' });
     await page.evaluate(() => applyLang('en'));
-    assert.equal(await page.locator('#tie-auto').innerText(), 'Decide from my original answers');
+    assert.equal(await page.locator('#tie-auto').innerText(), 'Let the academy decide');
     await page.screenshot({ path: path.join(output, 'mobile-tie-decision.png'), fullPage: true, animations: 'disabled' });
     assert.equal(posts.length, beforeTie);
     const chosen = model.classify(tiedScores).top.at(-1);
+    const tieResponse = page.waitForResponse(response => response.url() === `${base}/analytics` && response.request().method() === 'POST');
     await page.evaluate(chosen => {
       // An invalid academy and a duplicate completion must not create extra records.
       completeResult('invalid', 'player');
       completeResult(chosen, 'player');
       completeResult(chosen, 'player');
     }, chosen);
+    await tieResponse;
     await page.waitForURL('**/*page=result*');
     assert.equal(posts.length - beforeTie, 1);
     assert.equal(posts.at(-1).source, 'smoke');
@@ -157,18 +347,72 @@ test('phase 1 result rendering and quiz completion', { timeout: 120000 }, async 
     await page.goto(`${base}/index.html?page=quiz`);
     const automatic = await page.evaluate(() => ACADEMIES[breakTie(QUIZ_RESULT_MODEL.classify(scores).top.map(key => QUIZ_RESULT_MODEL.ORDER.indexOf(key)))].key);
     const beforeAuto = posts.length;
+    const autoResponse = page.waitForResponse(response => response.url() === `${base}/analytics` && response.request().method() === 'POST');
     await page.locator('#tie-auto').click();
+    await autoResponse;
     await page.waitForURL('**/*page=result*');
     const autoRecord = await page.evaluate(() => JSON.parse(sessionStorage.getItem('latestAcademyScores')));
     assert.equal(autoRecord.primary, automatic);
     assert.equal(autoRecord.selectionSource, 'automatic');
     assert.equal(posts.length - beforeAuto, 1);
 
+    // Storage restrictions must not crash language selection, answering, or the result screen.
+    const restricted = await context.newPage();
+    restricted.on('pageerror', err => errors.push(err.message));
+    await restricted.addInitScript(() => {
+      for (const key of ['localStorage', 'sessionStorage']) Object.defineProperty(window, key, { configurable: true, get() { throw new DOMException('Blocked', 'SecurityError'); } });
+    });
+    await restricted.goto(`${base}/index.html?page=quiz`);
+    assert.ok((await restricted.locator('#save-status').innerText()).includes('無法保存'));
+    await restricted.evaluate(() => applyLang('en'));
+    await restricted.locator('.quiz-option-btn').first().click();
+    await restricted.waitForFunction(() => qIndex === 1 && !advancing);
+    await restricted.evaluate(answers => {
+      answerHistory = answers; qIndex = answers.length;
+      scores = QUIZ_RESULT_MODEL.scoreAnswers(answers, QUIZ_QUESTIONS[currentLang]); showResult();
+    }, persona);
+    await restricted.waitForURL('**/*page=result*');
+    assert.equal(await restricted.locator('#academyBookShelf .academy-book-score').count(), 5);
+    assert.ok((await restricted.locator('.save-status').innerText()).includes('cannot be saved'));
+    await restricted.screenshot({ path: path.join(progressOutput, 'mobile-result-without-storage.png'), animations: 'disabled' });
+    await restricted.close();
+
     // A mid-reveal language change must not strand the result in its first act.
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.reload();
     await page.evaluate(() => applyLang('en'));
     assert.equal(await page.locator('.result-reveal-stage').getAttribute('data-reveal-state'), 'act3');
+
+    // GAS reports application errors through HTTP 200; neither page may display these as zero participants.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    statsFixture = { counts: {}, total: 0, error: 'Illegal spreadsheet id or key: YOUR_GOOGLE_SHEET_ID_HERE' };
+    await showScores([6, 8, 25, 12, 7], 'blue');
+    await page.waitForFunction(() => /失敗/.test(document.querySelector('#academyGlobalBookShelf')?.innerText || ''));
+    assert.equal(await page.locator('#academyGlobalStatsTotal').innerText(), '');
+    assert.equal(await page.locator('#academyGlobalBookShelf .academy-book-score').count(), 0);
+    await page.goto(`${base}/stats.html`);
+    await page.locator('#stats-error').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#stats-total').innerText(), '');
+    assert.equal(await page.locator('#donut-wrap').isVisible(), false);
+
+    statsFixture = { counts: { red: 4, green: 12, blue: 4, black: 11, white: 11 }, total: 42 };
+    await page.evaluate(() => loadStats());
+    assert.ok((await page.locator('#stats-total').innerText()).includes('42'));
+    assert.equal(await page.locator('#stats-error').isVisible(), false);
+    assert.equal(await page.locator('#donut-wrap').isVisible(), true);
+    statsFixture = { counts: {}, total: 0, error: 'Sheet unavailable' };
+    await page.evaluate(() => loadStats());
+    assert.equal(await page.locator('#stats-total').innerText(), '');
+    assert.equal(await page.locator('#donut-wrap').isVisible(), false);
+
+    statsFixture = { counts: { red: 0, green: 0, blue: 0, black: 0, white: 0 }, total: 0 };
+    await showScores([6, 8, 25, 12, 7], 'blue');
+    await page.waitForFunction(() => document.querySelectorAll('#academyGlobalBookShelf .academy-book-score').length === 5);
+    assert.deepEqual(await page.locator('#academyGlobalBookShelf .academy-book-score').allTextContents(), ['0%', '0%', '0%', '0%', '0%']);
+    assert.ok((await page.locator('#academyGlobalStatsTotal').innerText()).includes('0'));
+    await page.goto(`${base}/stats.html`);
+    await page.waitForFunction(() => document.querySelector('#stats-total')?.innerText.includes('0'));
+    assert.equal(await page.locator('#stats-error').isVisible(), false);
     assert.deepEqual(errors, []);
     observations.push({ completed, tieScores: [...tiedScores], chosen, automatic, completedPosts: posts.length, errors });
     await context.close();

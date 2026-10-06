@@ -18,8 +18,11 @@
         <div class="index_desc">
           <p style="font-size:1.2rem; text-align:center; color:var(--accent-color);" data-i18n-key="indexGreeting"></p>
           <p data-i18n-key="indexIntro"></p>
+          <div class="btn-container index-start-early">
+            <a href="index.html?page=quiz" class="index_button" data-i18n-key="startQuizBtn">開始測驗</a>
+          </div>
 
-          <div style="background:rgba(0,0,0,0.3); padding:25px; border-radius:12px;
+          <div class="index-procedure" style="background:rgba(0,0,0,0.3); padding:25px; border-radius:12px;
                       border:1px solid rgba(255,255,255,0.05); margin:25px 0;">
             <p style="margin-top:0; font-weight:bold; color:#fff;" data-i18n-key="indexProcedureTitle"></p>
             <ul style="list-style:none; padding:0; margin:0;">
@@ -33,14 +36,19 @@
           <p style="text-align:center; margin-top:30px; letter-spacing:3px; font-weight:bold; opacity:0.8;" data-i18n-key="indexGoodLuck"></p>
         </div>
 
-        <div class="btn-container">
-          <a href="index.html?page=quiz" class="index_button" data-i18n-key="startQuizBtn">開始測驗</a>
-        </div>
       </div>
     `,
 
     quiz: `
       <div id="quiz-wrap">
+        <section id="resume-card" class="resume-card" style="display:none;" aria-labelledby="resume-title">
+          <h2 id="resume-title" tabindex="-1" data-i18n-key="resumeTitle"></h2>
+          <p id="resume-description"></p>
+          <div class="quiz-controls">
+            <button id="resume-quiz" type="button" data-i18n-key="resumeQuizBtn"></button>
+            <button id="restart-quiz" class="secondary-button" type="button" data-i18n-key="restartQuizBtn"></button>
+          </div>
+        </section>
         <div id="chapter-transition" class="chapter-transition" style="display:none;" aria-live="polite"></div>
 
         <div id="progress-area" style="display:none;">
@@ -51,18 +59,21 @@
           <p class="progress-hint" id="progress-hint"></p>
         </div>
 
-        <div id="section-card" style="display:none;" class="quiz-section-card">
-          <div class="section-card-body">
+        <details id="section-card" style="display:none;" class="quiz-section-card compact-section">
+          <summary>
             <span class="section-badge" id="section-badge"></span>
-            <h2 class="section-label" id="section-label"></h2>
-            <p class="section-desc" id="section-desc"></p>
-          </div>
-        </div>
+            <span id="section-label"></span>
+          </summary>
+          <p class="section-desc" id="section-desc"></p>
+        </details>
 
         <div id="question-card" style="display:none;" class="fade-in">
-          <p id="question-text" class="qa"></p>
-          <p id="answer-feedback" class="answer-feedback" aria-live="polite"></p>
+          <p id="question-text" class="qa" tabindex="-1"></p>
           <div id="options-container"></div>
+          <div class="quiz-controls">
+            <button id="previous-question" class="secondary-button" type="button" data-i18n-key="previousQuestionBtn"></button>
+            <button id="continue-answer" type="button" data-i18n-key="keepAnswerBtn" disabled></button>
+          </div>
         </div>
         <section id="tie-decision" class="tie-decision" style="display:none;" aria-labelledby="tie-title">
           <h2 id="tie-title" tabindex="-1"></h2>
@@ -70,6 +81,7 @@
           <div id="tie-options"></div>
           <button id="tie-auto" class="res_btn" type="button"></button>
         </section>
+        <p id="save-status" class="save-status" role="status"></p>
       </div>
     `,
 
