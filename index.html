@@ -9,7 +9,7 @@
       data-i18n-key="indexMetaDescription"
       data-i18n-attr="content"
     />
-    <link rel="stylesheet" href="css/style.css?v=20261006-short-portrait" />
+    <link rel="stylesheet" href="css/style.css?v=20261009-language-switch" />
     <title>字命學院【創作特質測驗】</title>
   </head>
   <body data-page="index">
@@ -26,16 +26,25 @@
       <li></li>
     </ul>
 
-    <main class="container" id="page-root"></main>
+    <main class="container">
+      <div class="page-toolbar">
+        <div class="lang-switcher" role="group" aria-label="語言 / Language">
+          <button type="button" class="lang-btn" data-lang="zh-TW" lang="zh-Hant" aria-pressed="true">繁中</button>
+          <button type="button" class="lang-btn" data-lang="en" lang="en" aria-pressed="false">English</button>
+        </div>
+      </div>
+      <div id="page-root"></div>
+    </main>
 
-    <script src="js/i18n.js?v=20261006-short-portrait"></script>
-    <script src="js/translation.js?v=20261006-short-portrait"></script>
-    <script src="js/page-content.js?v=20261006-short-portrait"></script>
+    <script src="js/i18n.js?v=20261009-home-layout"></script>
+    <script src="js/translation.js?v=20261009-language-switch"></script>
+    <script src="js/page-content.js?v=20261009-home-layout"></script>
     <script src="js/config.js"></script>
     <script src="js/quiz-result-model.js?v=20261006-short-portrait"></script>
     <script src="js/calc.js?v=20261006-short-portrait"></script>
     <script src="js/academy-theme.js?v=20261006-short-portrait"></script>
     <script src="js/academy-stats.js?v=20261006-short-portrait"></script>
-    <script src="js/result.js?v=20261006-short-portrait"></script>
+    <script src="js/author-links.js?v=20261008-about-links"></script>
+    <script src="js/result.js?v=20261008-portrait-copy"></script>
   </body>
 </html>
