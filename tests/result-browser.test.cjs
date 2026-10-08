@@ -44,6 +44,15 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     const page = await context.newPage();
     page.on('pageerror', err => errors.push(err.message));
     await page.goto(base);
+    assert.equal(await page.locator('.lang-btn').count(), 2);
+    assert.equal(await page.locator('.lang-btn[data-lang="en"]').isVisible(), true);
+    await page.locator('.lang-btn[data-lang="en"]').click();
+    assert.equal(await page.locator('.index_button').innerText(), 'Start Quiz');
+    assert.equal(await page.locator('.lang-btn[data-lang="en"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('.lang-btn[data-lang="zh-TW"]').getAttribute('aria-pressed'), 'false');
+    await page.reload();
+    assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+    await page.locator('.lang-btn[data-lang="zh-TW"]').click();
     await page.goto(`${base}/index.html?page=quiz&restart=1&source=progress-test`);
     assert.equal(await page.locator('#previous-question').isDisabled(), true);
     assert.equal(await page.locator('#section-card').getAttribute('open'), '');
@@ -66,6 +75,11 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
       expected: QUIZ_QUESTIONS[currentLang][0].options[2].scores.map((score, i) => score + QUIZ_QUESTIONS[currentLang][1].options[0].scores[i]) }));
     assert.deepEqual(edited.scores, edited.expected);
     assert.deepEqual(edited.answers, [2, 0]);
+    await page.locator('.lang-btn[data-lang="en"]').click();
+    assert.equal(await page.evaluate(() => qIndex), 2);
+    assert.deepEqual(await page.evaluate(() => scores), edited.scores);
+    assert.deepEqual(await page.evaluate(() => answerHistory), edited.answers);
+    await page.locator('.lang-btn[data-lang="zh-TW"]').click();
     await page.locator('#previous-question').click();
     await page.locator('#previous-question').click();
     await page.locator('#continue-answer').click();
@@ -74,7 +88,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.reload();
     await page.locator('#resume-card').waitFor({ state: 'visible' });
     await page.screenshot({ path: path.join(progressOutput, 'mobile-resume.png'), animations: 'disabled' });
-    await page.evaluate(() => applyLang('en'));
+    await page.locator('.lang-btn[data-lang="en"]').click();
     assert.equal(await page.locator('#resume-quiz').innerText(), 'Continue quiz');
     await page.locator('#resume-quiz').click();
     assert.equal(await page.evaluate(() => qIndex), 1);
@@ -141,6 +155,8 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
       { name: 'Threads', href: 'https://www.threads.com/@tealize_write', icon: true, rel: 'noopener noreferrer' },
       { name: 'Plurk', href: 'https://www.plurk.com/Tealize', icon: true, rel: 'noopener noreferrer' },
     ]);
+    const workAuthorLinks = await page.locator('.result-works a, .result-author a').evaluateAll(links =>
+      links.map(link => ({ href: link.href, label: link.getAttribute('aria-label') || link.textContent.trim(), rel: link.rel })));
     await page.waitForFunction(() => document.querySelectorAll('#academyGlobalBookShelf .academy-book-score').length === 5);
     assert.deepEqual(await page.locator('#academyGlobalBookShelf .academy-book-score').allTextContents(), ['10%', '20%', '30%', '20%', '20%']);
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -331,6 +347,12 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await tieResponse;
     await page.waitForURL('**/*page=result*');
     assert.equal(posts.length - beforeTie, 1);
+    assert.equal(await page.locator('.lang-btn').count(), 2);
+    await page.locator('.lang-btn[data-lang="zh-TW"]').click();
+    assert.equal(await page.locator('html').getAttribute('lang'), 'zh-TW');
+    await page.locator('.lang-btn[data-lang="en"]').click();
+    assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+    assert.equal(posts.length - beforeTie, 1);
     assert.equal(posts.at(-1).source, 'smoke');
     const chosenRecord = await page.evaluate(() => JSON.parse(sessionStorage.getItem('latestAcademyScores')));
     assert.equal(chosenRecord.primary, chosen);
@@ -364,7 +386,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     });
     await restricted.goto(`${base}/index.html?page=quiz`);
     assert.ok((await restricted.locator('#save-status').innerText()).includes('無法保存'));
-    await restricted.evaluate(() => applyLang('en'));
+    await restricted.locator('.lang-btn[data-lang="en"]').click();
     await restricted.locator('.quiz-option-btn').first().click();
     await restricted.waitForFunction(() => qIndex === 1 && !advancing);
     await restricted.evaluate(answers => {
@@ -391,6 +413,10 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     assert.equal(await page.locator('#academyGlobalStatsTotal').innerText(), '');
     assert.equal(await page.locator('#academyGlobalBookShelf .academy-book-score').count(), 0);
     await page.goto(`${base}/stats.html`);
+    await page.locator('.lang-btn[data-lang="en"]').click();
+    assert.equal(await page.locator('#stats-title').innerText(),
+      await page.evaluate(() => UI_TRANSLATIONS.en.statsPageTitle));
+    await page.locator('.lang-btn[data-lang="zh-TW"]').click();
     await page.locator('#stats-error').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#stats-total').innerText(), '');
     assert.equal(await page.locator('#donut-wrap').isVisible(), false);
@@ -413,6 +439,31 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.goto(`${base}/stats.html`);
     await page.waitForFunction(() => document.querySelector('#stats-total')?.innerText.includes('0'));
     assert.equal(await page.locator('#stats-error').isVisible(), false);
+
+    // About uses the same localized work/author links, with a single quiz entry.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${base}/about.html`);
+    assert.equal(await page.locator('#about-works-title').innerText(), '作品介紹與連結');
+    assert.deepEqual(await page.locator('.result-works a, .result-author a').evaluateAll(links =>
+      links.map(link => ({ href: link.href, label: link.getAttribute('aria-label') || link.textContent.trim(), rel: link.rel }))), workAuthorLinks);
+    assert.equal(await page.locator('#about-quiz-link').getAttribute('href'), 'index.html');
+    assert.equal(await page.locator('.res_btn').count(), 1);
+    assert.equal(await page.locator('[data-i18n-key="aboutOriginP1"]').innerText(),
+      await page.evaluate(() => UI_TRANSLATIONS['zh-TW'].aboutOriginP1));
+    await page.waitForFunction(() => document.querySelector('.result-work-cover')?.naturalWidth > 0);
+    await page.locator('#about-connections').screenshot({ path: path.join(progressOutput, 'desktop-about-links.png'), animations: 'disabled' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('#about-connections').screenshot({ path: path.join(progressOutput, 'mobile-about-links.png'), animations: 'disabled' });
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.locator('.lang-btn[data-lang="en"]').click();
+    assert.equal(await page.locator('#about-works-title').innerText(), 'The Story Behind the Academies');
+    assert.equal(await page.locator('.result-work-cover').getAttribute('alt'), 'Word Fate Awakening, volume one cover');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.locator('#about-connections').screenshot({ path: path.join(progressOutput, 'mobile-about-links-en-320.png'), animations: 'disabled' });
+    await page.locator('.lang-btn[data-lang="zh-TW"]').click();
+    assert.equal(await page.locator('#about-works-title').innerText(), '作品介紹與連結');
+    assert.equal(await page.locator('#about-quiz-link').innerText(), '回到測驗');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.deepEqual(errors, []);
     observations.push({ completed, tieScores: [...tiedScores], chosen, automatic, completedPosts: posts.length, errors });
     await context.close();

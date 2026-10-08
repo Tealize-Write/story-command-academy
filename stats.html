@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/style.css?v=20261009-language-switch" />
     <title>Word Fate Academy — Statistics</title>
   </head>
   <body>
@@ -21,6 +21,12 @@
     </ul>
 
     <div class="container fade-in">
+      <div class="page-toolbar">
+        <div class="lang-switcher" role="group" aria-label="語言 / Language">
+          <button type="button" class="lang-btn" data-lang="zh-TW" lang="zh-Hant" aria-pressed="true">繁中</button>
+          <button type="button" class="lang-btn" data-lang="en" lang="en" aria-pressed="false">English</button>
+        </div>
+      </div>
       <h1
         id="stats-title"
         data-i18n-key="statsPageTitle"
@@ -81,7 +87,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
-    <script src="js/translation.js"></script>
+    <script src="js/translation.js?v=20261009-language-switch"></script>
     <script src="js/academy-theme.js"></script>
     <script src="js/academy-stats.js"></script>
     <script>

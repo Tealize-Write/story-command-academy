@@ -66,9 +66,11 @@ function applyLang(lang) {
     if (t[key] !== undefined) el.setAttribute(attr, t[key]);
   });
 
-  _langBtns?.forEach((btn) =>
-    btn.classList.toggle("active", btn.dataset.lang === lang),
-  );
+  _langBtns?.forEach((btn) => {
+    const active = btn.dataset.lang === lang;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", String(active));
+  });
 
   document.dispatchEvent(new CustomEvent("langChanged", { detail: { lang } }));
 }

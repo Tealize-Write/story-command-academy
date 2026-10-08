@@ -504,27 +504,27 @@ function formatText(template, name) {
 const RESULT_SUMMARY = {
   "zh-TW": {
     primary: {
-      red: "你留意讀者的喜好，讓故事找到能引起共鳴的方向",
-      green: "你喜歡跳出慣例，讓新奇的點子成為故事的起點",
-      blue: "你細心考究世界與情節，讓想像中的故事像真實存在",
-      black: "你細細雕琢文字，讓優美筆觸承載思考",
-      white: "你以人物為故事的中心，細膩描繪情感與關係",
+      red: "你留意市場的風向與讀者喜好，思考作品如何抓住人心",
+      green: "你不喜歡被慣例框住，更在意故事是否新奇、有趣",
+      blue: "你細心考究設定與細節，讓讀者沉浸在可信的世界裡",
+      black: "你相信文字是故事的血肉，讓字句承載情感與思考",
+      white: "你相信人物是故事的推動力，喜歡細膩描繪情感與關係",
     },
     secondary: {
       red: "留意讀者的期待與故事的吸引力",
       green: "用新奇的點子為故事帶來驚喜",
-      blue: "用細節與邏輯讓故事更可信",
-      black: "以講究的文字留下餘韻",
-      white: "從人物的內心與關係推動情節",
+      blue: "用細節與邏輯撐起故事的真實感",
+      black: "以講究的字句留下餘韻",
+      white: "讓人物的內心與關係牽動情節",
     },
   },
   en: {
     primary: {
-      red: "You keep readers in mind and shape stories that resonate with them",
-      green: "You venture beyond familiar patterns and let fresh ideas start the story",
-      blue: "You build worlds and plots with care, making imagined stories feel real",
-      black: "You polish your language to give your ideas depth and resonance",
-      white: "You place people at the heart of the story, exploring emotions and relationships",
+      red: "You watch market trends and readers' tastes, thinking about how a story can capture their attention",
+      green: "You dislike being boxed in by convention and value stories that feel fresh and fun",
+      blue: "You research settings and details carefully so readers can immerse themselves in a believable world",
+      black: "You see language as the lifeblood of a story, carrying emotion and thought",
+      white: "You see characters as the driving force of a story and enjoy exploring their emotions and relationships",
     },
     secondary: {
       red: "consider readers' expectations and what draws them in",
@@ -790,71 +790,15 @@ function clearRevealTimers() {
 }
 
 function makeResultConnections(activeKey, t) {
-  const section = el("section", { className: "result-connections result-actions-grid" });
-  const works = el("section", { className: "result-works" });
-  works.setAttribute("aria-labelledby", "result-works-title");
-  const worksHeader = el("div", { className: "result-section-header" });
-  worksHeader.appendChild(el("h2", { id: "result-works-title" }, t.resultWorksTitle));
-  const personalWebsite = makeResultLink("https://tealize-write.github.io/", t.resultPersonalWebsite, "result-utility-link", activeKey);
-  decorateResultUtilityLink(personalWebsite, "website");
-  worksHeader.appendChild(personalWebsite);
-  works.appendChild(worksHeader);
-
-  const workCard = el("article", { className: "result-work-card" });
-  workCard.appendChild(el("img", { className: "result-work-cover", src: "img/cover.jpg", alt: t.resultWorkCoverAlt,
-    width: 1000, height: 1429, loading: "lazy" }));
-  const workText = el("div", { className: "result-work-text" });
-  workText.appendChild(el("p", { className: "result-work-subtitle" }, t.resultWorkSubtitle));
-  workText.appendChild(el("h3", {}, t.resultWorkTitle));
-  workText.appendChild(el("p", { className: "result-work-description" }, t.resultWorkDescription));
-  const readingLinks = el("nav", { className: "result-reading-links" });
-  readingLinks.setAttribute("aria-label", t.resultReadingPlatforms);
-  readingLinks.appendChild(el("span", { className: "result-reading-label" }, t.resultReadingPlatforms));
-  const platforms = [
-    ["Penana", "https://www.penana.com/story/16766/"],
-    ["KadoKado", "https://www.kadokado.com.tw/book/1425"],
-    ["CXC", "https://cxc.today/zh/store/ApatiteBlue/work/20217"],
-  ];
-  platforms.forEach(([name, href]) => {
-    const link = makeResultLink(href, name, "result-reading-link", activeKey);
-    link.setAttribute("aria-label", t.resultReadOn.replace("{platform}", name));
-    readingLinks.appendChild(link);
+  const section = window.AUTHOR_LINKS.create(t, {
+    bindLink: (link, label) => bindTrackedLink(link, label, activeKey),
   });
-  workText.appendChild(readingLinks);
-  workCard.appendChild(workText);
-  works.appendChild(workCard);
-  section.appendChild(works);
-
-  const author = el("section", { className: "result-author" });
-  author.setAttribute("aria-labelledby", "result-author-title");
-  const authorText = el("div", {});
-  authorText.appendChild(el("h3", { id: "result-author-title" }, t.resultAuthorTitle));
-  authorText.appendChild(el("p", { className: "result-author-name" }, t.resultAuthorName));
-  author.appendChild(authorText);
-  const socialNav = el("nav", { className: "result-social-links" });
-  socialNav.setAttribute("aria-label", t.resultAuthorTitle);
-  const socials = [
-    ["facebook", "Facebook", "https://www.facebook.com/TealizeWrite/"],
-    ["instagram", "Instagram", "https://www.instagram.com/tealize_write/"],
-    ["threads", "Threads", "https://www.threads.com/@tealize_write"],
-    ["plurk", "Plurk", "https://www.plurk.com/Tealize"],
-  ];
-  socials.forEach(([id, name, href]) => {
-    const link = makeResultLink(href, name, "result-social-link", activeKey);
-    link.dataset.platform = id;
-    link.setAttribute("aria-label", name);
-    link.title = name;
-    link.textContent = "";
-    link.appendChild(makeSocialIcon(id));
-    socialNav.appendChild(link);
-  });
-  author.appendChild(socialNav);
-  section.appendChild(author);
+  section.classList.add("result-actions-grid");
 
   const quizNav = el("nav", { className: "result-quiz-nav" });
   quizNav.setAttribute("aria-label", t.resultQuizActionsLabel);
   const aboutLink = el("a", { className: "result-utility-link", href: "about.html" }, t.aboutLinkText);
-  decorateResultUtilityLink(aboutLink, "book");
+  window.AUTHOR_LINKS.decorateLink(aboutLink, "book");
   bindTrackedLink(aboutLink, t.aboutLinkText, activeKey);
   quizNav.appendChild(aboutLink);
   const retake = el("button", { id: "retake-quiz", className: "res_btn result-retake", type: "button" }, t.retakeText);
@@ -862,83 +806,6 @@ function makeResultConnections(activeKey, t) {
   quizNav.appendChild(retake);
   section.appendChild(quizNav);
   return section;
-}
-
-function makeResultLink(href, label, className, activeKey) {
-  const link = el("a", { href, className, target: "_blank", rel: "noopener noreferrer" }, label);
-  bindTrackedLink(link, label, activeKey);
-  return link;
-}
-
-function decorateResultUtilityLink(link, kind) {
-  const label = link.textContent;
-  link.textContent = "";
-  link.appendChild(makeResultUtilityIcon(kind));
-  link.appendChild(el("span", { className: "result-utility-label" }, label));
-  const arrow = makeResultUtilityIcon(kind === "website" ? "external" : "forward");
-  arrow.classList.add("result-utility-arrow");
-  link.appendChild(arrow);
-}
-
-function makeResultUtilityIcon(kind) {
-  const ns = "http://www.w3.org/2000/svg";
-  const icon = document.createElementNS(ns, "svg");
-  const attributes = { viewBox: "0 0 24 24", width: 20, height: 20, fill: "none",
-    stroke: "currentColor", "stroke-width": 1.5, "stroke-linecap": "round",
-    "stroke-linejoin": "round", "aria-hidden": "true", focusable: "false" };
-  Object.entries(attributes).forEach(([name, value]) => icon.setAttribute(name, value));
-  const paths = {
-    website: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c2.2 2.5 3.5 5.5 3.5 9S14.2 18.5 12 21c-2.2-2.5-3.5-5.5-3.5-9S9.8 5.5 12 3Z",
-    book: "M12 6v15M12 6C9 4 6 3.5 3 4v15c3-.5 6 0 9 2 3-2 6-2.5 9-2V4c-3-.5-6 0-9 2Z",
-    external: "M7 17 17 7M7 7h10v10",
-    forward: "M5 12h14M13 6l6 6-6 6",
-  };
-  const path = document.createElementNS(ns, "path");
-  path.setAttribute("d", paths[kind]);
-  icon.appendChild(path);
-  return icon;
-}
-
-function makeSocialIcon(platform) {
-  const ns = "http://www.w3.org/2000/svg";
-  const icon = document.createElementNS(ns, "svg");
-  icon.setAttribute("viewBox", "0 0 24 24");
-  icon.setAttribute("width", "22");
-  icon.setAttribute("height", "22");
-  icon.setAttribute("aria-hidden", "true");
-  icon.setAttribute("focusable", "false");
-  if (platform === "facebook") {
-    const path = document.createElementNS(ns, "path");
-    path.setAttribute("fill", "currentColor");
-    path.setAttribute("d", "M14 22v-9h3l.5-4H14V6.5c0-1.2.4-2 2-2h1.8V1.2c-.7-.1-1.7-.2-2.9-.2C11.7 1 10 2.9 10 6.2V9H7v4h3v9z");
-    icon.appendChild(path);
-  } else {
-    icon.setAttribute("fill", "none");
-    icon.setAttribute("stroke", "currentColor");
-    icon.setAttribute("stroke-width", "1.8");
-    icon.setAttribute("stroke-linecap", "round");
-    icon.setAttribute("stroke-linejoin", "round");
-    if (platform === "instagram") {
-      const frame = document.createElementNS(ns, "rect");
-      for (const [attr, value] of Object.entries({ x: 3, y: 3, width: 18, height: 18, rx: 5 })) frame.setAttribute(attr, value);
-      icon.appendChild(frame);
-      const lens = document.createElementNS(ns, "circle");
-      lens.setAttribute("cx", "12"); lens.setAttribute("cy", "12"); lens.setAttribute("r", "4");
-      icon.appendChild(lens);
-      const dot = document.createElementNS(ns, "circle");
-      dot.setAttribute("cx", "17.5"); dot.setAttribute("cy", "6.5"); dot.setAttribute("r", "0.7");
-      dot.setAttribute("fill", "currentColor"); icon.appendChild(dot);
-    } else if (platform === "threads") {
-      const path = document.createElementNS(ns, "path");
-      path.setAttribute("d", "M18.7 7.5C18 4.2 15.8 2.5 12.1 2.5 7 2.5 4 5.9 4 12s3 9.5 8.1 9.5c4.4 0 7.9-2.6 7.9-6.2 0-3.1-2.5-5.1-6-5.1-2.8 0-4.8 1.4-4.8 3.4 0 1.5 1.2 2.5 2.9 2.5 2.6 0 4.2-2 4.2-5.1 0-3.2-1.8-5.2-4.4-5.2-1.4 0-2.6.5-3.4 1.5");
-      icon.appendChild(path);
-    } else {
-      const path = document.createElementNS(ns, "path");
-      path.setAttribute("d", "M7 22V8h6a6 6 0 0 1 0 12H7M7 4h7");
-      icon.appendChild(path);
-    }
-  }
-  return icon;
 }
 
 function makeBlock(title, paragraphs) {

@@ -7,33 +7,50 @@
   const page = mode || document.body.getAttribute("data-page") || "index";
   const templates = {
     index: `
-      <div class="fade-in">
-        <h1 data-i18n-key="pageTitle" style="font-size:1.6rem;"></h1>
+      <div class="fade-in index-page">
+        <h1 data-i18n-key="pageTitle"></h1>
 
         <figure class="fig">
           <img src="img/index.jpg" alt="Creative trait quiz visual" data-i18n-key="indexHeroAlt" data-i18n-attr="alt"
-               style="max-height:350px; object-fit:cover; width:100%; border-bottom:3px solid var(--accent-color);">
+               width="3105" height="1545">
         </figure>
 
         <div class="index_desc">
-          <p style="font-size:1.2rem; text-align:center; color:var(--accent-color);" data-i18n-key="indexGreeting"></p>
-          <p data-i18n-key="indexIntro"></p>
-          <div class="btn-container index-start-early">
+          <div class="index-welcome">
+            <p class="index-greeting" data-i18n-key="indexGreeting"></p>
+            <p class="index-intro" data-i18n-key="indexIntro"></p>
+          </div>
+
+          <section class="index-procedure" aria-labelledby="index-procedure-title">
+            <div class="index-procedure-header">
+              <h2 id="index-procedure-title" data-i18n-key="indexProcedureTitle"></h2>
+              <p class="quiz-duration" data-i18n-key="quizDurationHint"></p>
+            </div>
+            <ol class="index-stages">
+              <li>
+                <span class="index-stage-number" aria-hidden="true">01</span>
+                <div>
+                  <h3 data-i18n-key="indexStage1Title"></h3>
+                  <p class="index-stage-count" data-i18n-key="indexStage1Count"></p>
+                  <p class="index-stage-description" data-i18n-key="indexStage1"></p>
+                </div>
+              </li>
+              <li>
+                <span class="index-stage-number" aria-hidden="true">02</span>
+                <div>
+                  <h3 data-i18n-key="indexStage2Title"></h3>
+                  <p class="index-stage-count" data-i18n-key="indexStage2Count"></p>
+                  <p class="index-stage-description" data-i18n-key="indexStage2"></p>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <div class="index-start">
+            <p class="index-outcome" data-i18n-key="indexAfterAnalysis"></p>
+            <p class="index-good-luck" data-i18n-key="indexGoodLuck"></p>
             <a href="index.html?page=quiz" class="index_button" data-i18n-key="startQuizBtn">開始測驗</a>
           </div>
-
-          <div class="index-procedure" style="background:rgba(0,0,0,0.3); padding:25px; border-radius:12px;
-                      border:1px solid rgba(255,255,255,0.05); margin:25px 0;">
-            <p style="margin-top:0; font-weight:bold; color:#fff;" data-i18n-key="indexProcedureTitle"></p>
-            <ul style="list-style:none; padding:0; margin:0;">
-              <li style="margin-bottom:10px;" data-i18n-key="indexStage1"></li>
-              <li data-i18n-key="indexStage2"></li>
-            </ul>
-          </div>
-
-          <p data-i18n-key="indexAfterAnalysis"></p>
-          <p class="quiz-duration" data-i18n-key="quizDurationHint"></p>
-          <p style="text-align:center; margin-top:30px; letter-spacing:3px; font-weight:bold; opacity:0.8;" data-i18n-key="indexGoodLuck"></p>
         </div>
 
       </div>
