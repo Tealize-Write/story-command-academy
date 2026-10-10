@@ -5,7 +5,7 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "test:unit": "node --test tests/analytics.test.cjs tests/academy-stats.test.cjs tests/gas-contract.test.cjs tests/result-model.test.cjs tests/build.test.cjs",
+    "test:unit": "node --test tests/analytics.test.cjs tests/academy-stats.test.cjs tests/gas-contract.test.cjs tests/result-model.test.cjs tests/build.test.cjs tests/source-integrity.test.cjs",
     "test:browser": "node --test tests/result-browser.test.cjs tests/project-regressions.test.cjs",
     "build": "node scripts/build.cjs"
   },

@@ -189,10 +189,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     ]);
     const workAuthorLinks = await page.locator('.result-works a, .result-author a').evaluateAll(links =>
       links.map(link => ({ href: link.href, label: link.getAttribute('aria-label') || link.textContent.trim(), rel: link.rel })));
-<<<<<<< HEAD
     await checkConnectionTracking('result');
-=======
->>>>>>> origin/main
     await page.waitForFunction(() => document.querySelectorAll('#academyGlobalBookShelf .academy-book-score').length === 5);
     assert.deepEqual(await page.locator('#academyGlobalBookShelf .academy-book-score').allTextContents(), ['10%', '20%', '30%', '20%', '20%']);
     assert.equal(await page.locator('#academyGlobalStatsTotal').innerText(), '完成次數：50 · 參與者：32');
@@ -488,10 +485,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     assert.equal(await page.locator('#about-works-title').innerText(), '作品介紹與連結');
     assert.deepEqual(await page.locator('.result-works a, .result-author a').evaluateAll(links =>
       links.map(link => ({ href: link.href, label: link.getAttribute('aria-label') || link.textContent.trim(), rel: link.rel }))), workAuthorLinks);
-<<<<<<< HEAD
     await checkConnectionTracking('about');
-=======
->>>>>>> origin/main
     assert.equal(await page.locator('#about-quiz-link').getAttribute('href'), 'index.html');
     assert.equal(await page.locator('.res_btn').count(), 1);
     assert.equal(await page.locator('[data-i18n-key="aboutOriginP1"]').innerText(),
@@ -504,17 +498,13 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.locator('.lang-btn[data-lang="en"]').click();
     assert.equal(await page.locator('#about-works-title').innerText(), 'The Story Behind the Academies');
     assert.equal(await page.locator('.result-work-cover').getAttribute('alt'), 'Word Fate Awakening, volume one cover');
-<<<<<<< HEAD
     await checkConnectionTracking('about');
-=======
->>>>>>> origin/main
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.locator('#about-connections').screenshot({ path: path.join(progressOutput, 'mobile-about-links-en-320.png'), animations: 'disabled' });
     await page.locator('.lang-btn[data-lang="zh-TW"]').click();
     assert.equal(await page.locator('#about-works-title').innerText(), '作品介紹與連結');
     assert.equal(await page.locator('#about-quiz-link').innerText(), '回到測驗');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-<<<<<<< HEAD
     await page.goto(`${base}/index.html?page=result&academy=blue`);
     await page.locator('.result-quiz-nav a.result-utility-link').click();
     await page.waitForURL(`${base}/about.html`);
@@ -534,8 +524,6 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
       assert.ok(events.some(event => event.action === action), `Missing analytics event: ${action}`);
     }
     assert.equal(posts.at(-1).eventId, `quiz_completed:${posts.at(-1).attemptId}`);
-=======
->>>>>>> origin/main
     assert.deepEqual(errors, []);
     observations.push({ completed, tieScores: [...tiedScores], chosen, automatic, completedPosts: posts.length, errors });
     await context.close();

@@ -808,26 +808,15 @@ function clearRevealTimers() {
   revealTimers = [];
 }
 
-<<<<<<< HEAD
 function makeResultConnections(t) {
   const section = window.AUTHOR_LINKS.create(t);
-=======
-function makeResultConnections(activeKey, t) {
-  const section = window.AUTHOR_LINKS.create(t, {
-    bindLink: (link, label) => bindTrackedLink(link, label, activeKey),
-  });
->>>>>>> origin/main
   section.classList.add("result-actions-grid");
 
   const quizNav = el("nav", { className: "result-quiz-nav" });
   quizNav.setAttribute("aria-label", t.resultQuizActionsLabel);
   const aboutLink = el("a", { className: "result-utility-link", href: "about.html" }, t.aboutLinkText);
   window.AUTHOR_LINKS.decorateLink(aboutLink, "book");
-<<<<<<< HEAD
   aboutLink.dataset.analyticsEvent = "about_opened";
-=======
-  bindTrackedLink(aboutLink, t.aboutLinkText, activeKey);
->>>>>>> origin/main
   quizNav.appendChild(aboutLink);
   const retake = el("button", { id: "retake-quiz", className: "res_btn result-retake", type: "button" }, t.retakeText);
   retake.dataset.analyticsEvent = "quiz_retaken";
