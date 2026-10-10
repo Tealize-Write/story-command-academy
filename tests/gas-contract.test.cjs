@@ -12,6 +12,31 @@ function setup(rows = [oldHeaders.slice()]) {
   const backups = [];
   const formats = [];
   const cache = new Map(); let reads = 0;
+  const reportRows = [], triggers = [];
+  let reportExists = false;
+  const reportSheet = {
+    getLastRow: () => reportRows.length, getMaxColumns: () => 26, getMaxRows: () => 1000,
+    clearContents() { reportRows.length = 0; },
+    setFrozenRows() {}, setColumnWidth() {}, setColumnWidths() {},
+    getRange(row, column, height = 1, width = 1) {
+      const range = {
+        getValues: () => Array.from({ length: height }, (_, i) => Array.from({ length: width }, (_, j) => reportRows[row - 1 + i]?.[column - 1 + j] ?? '')),
+        setValues(values) {
+          assert.equal(values.length, height);
+          values.forEach((values, i) => {
+            assert.equal(values.length, width);
+            reportRows[row - 1 + i] ||= [];
+            values.forEach((value, j) => { reportRows[row - 1 + i][column - 1 + j] = value; });
+          });
+          return range;
+        },
+        setFontWeight() { return range; },
+        setNumberFormat() { return range; },
+        breakApart() { return range; }, mergeAcross() { return range; }, setWrap() { return range; },
+      };
+      return range;
+    },
+  };
   const sheet = {
     getLastRow: () => rows.length, getMaxColumns: () => 26,
     insertRowBefore: () => rows.unshift([]),
@@ -45,8 +70,20 @@ function setup(rows = [oldHeaders.slice()]) {
     },
   };
   const spreadsheet = { getSpreadsheetTimeZone: () => timeZone, setSpreadsheetTimeZone: zone => { timeZone = zone; },
-    getSheetByName: name => { assert.equal(name, '測驗結果'); return sheet; } };
+    getSheetByName: name => {
+      if (name === '推廣成效') return reportExists ? reportSheet : null;
+      assert.equal(name, '測驗結果'); return sheet;
+    },
+    insertSheet: name => { assert.equal(name, '推廣成效'); reportExists = true; return reportSheet; } };
   const context = vm.createContext({ Date, Logger: { log() {} },
+    ScriptApp: {
+      getProjectTriggers: () => triggers.map(handler => ({ getHandlerFunction: () => handler })),
+      newTrigger(handler) {
+        const builder = { timeBased: () => builder, everyHours(hours) { assert.equal(hours, 1); return builder; },
+          create: () => triggers.push(handler) };
+        return builder;
+      },
+    },
     CacheService: { getScriptCache: () => ({ get: key => cache.get(key) || null, put: (key, value) => cache.set(key, value), remove: key => cache.delete(key) }) },
     SpreadsheetApp: { openById: id => {
       assert.equal(id, '1UaAnWH8hUeoQR792OcP-BaGwW_64xmBJnsGf-mEATQ4'); return spreadsheet;
@@ -57,7 +94,7 @@ function setup(rows = [oldHeaders.slice()]) {
       createTextOutput: body => ({ body, setMimeType() { return this; } }) },
   });
   vm.runInContext(fs.readFileSync('GAS/Code.gs', 'utf8'), context);
-  return { context, rows, backups, formats, cache, getReads: () => reads, getTimeZone: () => timeZone,
+  return { context, rows, backups, formats, cache, reportRows, triggers, getReads: () => reads, getTimeZone: () => timeZone,
     post: payload => JSON.parse(context.doPost({ postData: { contents: JSON.stringify(payload) } }).body),
     stats: () => JSON.parse(context.doGet().body) };
 }
@@ -148,4 +185,76 @@ test('GAS reuses short-lived statistics and invalidates them after an acknowledg
   assert.equal(state.getReads(), 2);
   assert.equal(state.stats().total, 1);
   assert.equal(state.getReads(), 2);
+});
+
+function marketingRows(events) {
+  const headers = ['timestamp', 'clientId', 'keyword', 'action', 'source', 'referrer', 'device', 'country', 'city', 'timeSpent',
+    'eventId', 'page', 'platform', 'target', 'language', 'attemptId'];
+  return [headers, ...events.map(event => headers.map(key => event[key] ?? ''))];
+}
+
+test('marketing report counts unique completion cohorts separately from repeated and unrelated clicks', { skip: !available }, () => {
+  const state = setup();
+  const result = JSON.parse(JSON.stringify(state.context.buildMarketingReport_(marketingRows([
+    { timestamp: '2026-10-10T02:00:00Z', clientId: 'a', source: 'threads', action: 'work_link_clicked', platform: 'penana', attemptId: 'one', eventId: 'click-1' },
+    { timestamp: '2026-10-10T02:00:00Z', clientId: 'a', source: 'threads', action: 'work_link_clicked', platform: 'penana', attemptId: 'one', eventId: 'click-1' },
+    { timestamp: '2026-10-10T00:00:00Z', clientId: 'a', source: 'threads', action: 'quiz_started', attemptId: 'one' },
+    { timestamp: '2026-10-10T01:00:00Z', clientId: 'a', source: 'threads', action: 'quiz_completed', keyword: 'blue', attemptId: 'one' },
+    { timestamp: '2026-10-10T03:00:00Z', clientId: 'a', source: 'threads', action: 'work_link_clicked', platform: 'penana', attemptId: 'one' },
+    { timestamp: '2026-10-10T04:00:00Z', clientId: 'visitor', source: 'threads', action: 'social_link_clicked', platform: 'instagram' },
+    { timestamp: '2026-10-10T05:00:00Z', clientId: 'a', source: 'threads', action: 'social_link_clicked', platform: 'threads', attemptId: 'two' },
+    { timestamp: '2026-10-10T06:00:00Z', clientId: 'b', source: 'threads', action: 'quiz_completed', keyword: 'green' },
+    { timestamp: '2026-10-10T07:00:00Z', source: 'threads', action: 'work_link_clicked', platform: 'penana' },
+    { timestamp: '2026-10-10T08:00:00Z', clientId: 'a', source: 'threads', action: 'personal_website_clicked' },
+  ]))));
+  assert.deepEqual(result.sources, [['threads', 1, 2, 1, 3, 0, 2, 0.5, 0]]);
+  assert.deepEqual(result.platforms.find(row => row[2] === 'penana'), ['threads', '作品', 'penana', 3, 1]);
+  assert.deepEqual(result.platforms.find(row => row[1] === '個人網站'), ['threads', '個人網站', '個人網站', 1, 1]);
+  assert.equal(result.unidentified, 1);
+});
+
+test('marketing report handles legacy Taipei dates, incomplete rows and source-specific attribution', { skip: !available }, () => {
+  const state = setup();
+  const result = JSON.parse(JSON.stringify(state.context.buildMarketingReport_(marketingRows([
+    { timestamp: '2026-10-11 08:00:00', clientId: 'a', action: 'quiz_completed', keyword: 'black' },
+    { timestamp: new Date('2026-10-11T01:00:00Z'), clientId: 'a', action: 'social_link_clicked', platform: 'threads' },
+    { timestamp: '2026-10-11T02:00:00Z', clientId: 'a', source: 'threads', action: 'work_link_clicked', platform: 'cxc' },
+    { timestamp: 'unknown', clientId: 'b', action: 'quiz_completed', keyword: 'white' },
+    { timestamp: '2026-10-11T03:00:00Z', clientId: 'b', action: 'work_link_clicked', platform: 'cxc' },
+    { action: '測驗與學院的設計', clientId: 'a' },
+    { action: 'quiz_completed', keyword: 'invalid' },
+    { action: 'constructor' },
+  ]))));
+  assert.deepEqual(result.sources.find(row => row[0] === 'direct'), ['direct', 0, 2, 0, 1, 1, 1, 0, 0.5]);
+  assert.deepEqual(result.sources.find(row => row[0] === 'threads'), ['threads', 0, 0, 0, 1, 0, 0, '', '']);
+  assert.equal(result.unrecognized, 3);
+});
+
+test('marketing report setup preserves raw columns, escapes formulas and installs only one scheduled refresh', { skip: !available }, () => {
+  const state = setup();
+  state.post({ action: 'quiz_completed', keyword: 'blue', eventId: 'complete-1', clientId: 'a', source: '=1+1' });
+  state.post({ action: 'work_link_clicked', eventId: 'click-1', clientId: 'a', source: '=1+1', platform: '=2+2' });
+  const raw = state.rows.map(row => row.slice());
+  state.context.setupMarketingReport();
+  state.context.setupMarketingReport();
+  assert.deepEqual(state.rows, raw);
+  assert.deepEqual(state.triggers, ['refreshMarketingReport']);
+  assert.equal(state.reportRows[0][0], '推廣成效（自動產生）');
+  assert.ok(state.reportRows[0][2] instanceof Date);
+  assert.equal(state.reportRows[7][7], '看書轉出率');
+  assert.equal(state.reportRows[8][0], "'=1+1");
+  assert.equal(state.reportRows[11][2], "'=2+2");
+  state.rows.length = 1;
+  state.context.refreshMarketingReport();
+  assert.equal(state.reportRows.length, 10, 'old report rows are removed on refresh');
+});
+
+test('marketing refresh refuses to overwrite an existing sheet with unrelated contents', { skip: !available }, () => {
+  const state = setup();
+  state.context.refreshMarketingReport();
+  state.reportRows[0][0] = '手動建立的報表';
+  assert.throws(() => state.context.refreshMarketingReport(), /已有其他內容/);
+  assert.equal(state.reportRows[0][0], '手動建立的報表');
+  state.reportRows[0][0] = '推廣成效（自動產生）';
+  assert.doesNotThrow(() => state.context.refreshMarketingReport(), 'write lock is released after failure');
 });

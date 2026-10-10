@@ -2,6 +2,7 @@
 (function analyticsBootstrap() {
   const QUEUE_KEY = "academyAnalyticsQueue";
   const SOURCE_KEY = "academyAnalyticsSource";
+  const REFERRER_KEY = "academyAnalyticsEntryReferrer";
   const MAX_EVENTS = 200;
   const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
   let memoryQueue = [];
@@ -9,6 +10,8 @@
   let sending = false;
   let retryTimer;
   const acknowledgedIds = new Set();
+  let entrySource = "";
+  let entryReferrer = "";
 
   function endpoint() {
     return typeof GAS_URL === "string" && /^https?:\/\//.test(GAS_URL) ? GAS_URL : "";
@@ -46,15 +49,59 @@
     return new URLSearchParams(location.search).get("page") || document.body.dataset.page || "index";
   }
 
-  function trafficSource() {
+  function explicitSource() {
     const params = new URLSearchParams(location.search);
-    const explicit = params.get("source") || params.get("utm_source");
-    if (explicit) {
-      try { sessionStorage.setItem(SOURCE_KEY, explicit); } catch {}
-      return explicit;
-    }
-    if (context.source) return context.source;
-    try { return sessionStorage.getItem(SOURCE_KEY) || "direct"; } catch { return "direct"; }
+    return params.get("source")?.trim() || params.get("utm_source")?.trim() || "";
+  }
+
+  function referralDetails() {
+    try {
+      const url = new URL(document.referrer);
+      if (!["http:", "https:"].includes(url.protocol)) return null;
+      const basePath = location.pathname.slice(0, location.pathname.lastIndexOf("/") + 1);
+      const internal = url.origin === location.origin &&
+        (url.pathname.startsWith(basePath) || url.pathname === basePath.slice(0, -1));
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      const matches = domain => host === domain || host.endsWith("." + domain);
+      let source = host;
+      for (const [name, domains] of [
+        ["threads", ["threads.com", "threads.net"]],
+        ["instagram", ["instagram.com"]],
+        ["facebook", ["facebook.com", "fb.com", "fb.me"]],
+        ["plurk", ["plurk.com"]],
+        ["bing", ["bing.com"]],
+        ["duckduckgo", ["duckduckgo.com"]],
+      ]) {
+        if (domains.some(matches)) { source = name; break; }
+      }
+      if (/(^|\.)google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})$/.test(host)) source = "google";
+      return { internal, source, referrer: url.href };
+    } catch { return null; }
+  }
+
+  function rememberSource(source) {
+    entrySource = source;
+    try { sessionStorage.setItem(SOURCE_KEY, source); } catch {}
+    return source;
+  }
+
+  function initializeAttribution() {
+    const explicit = explicitSource();
+    const referral = referralDetails();
+    let savedSource = "", savedReferrer = "";
+    try {
+      savedSource = sessionStorage.getItem(SOURCE_KEY) || "";
+      savedReferrer = sessionStorage.getItem(REFERRER_KEY) || "";
+    } catch {}
+    rememberSource(explicit || (referral && !referral.internal ? referral.source : "") || savedSource || "direct");
+    // Internal navigation must not replace the original entry with our own quiz URL.
+    entryReferrer = referral && !referral.internal ? referral.referrer :
+      (explicit && !referral?.internal ? "" : savedReferrer);
+    try { sessionStorage.setItem(REFERRER_KEY, entryReferrer); } catch {}
+  }
+
+  function trafficSource() {
+    return rememberSource(explicitSource() || context.source || entrySource || "direct");
   }
 
   function setContext(details) {
@@ -72,7 +119,7 @@
         keyword: context.keyword || "",
         action,
         source: trafficSource(),
-        referrer: document.referrer || "",
+        referrer: entryReferrer,
         device: getDeviceType(),
         ...getLocationPayload(),
         timeSpent: 0,
@@ -183,6 +230,6 @@
   });
   window.addEventListener("pagehide", sendOnExit);
   window.addEventListener("online", () => { void flush(true); });
-  trafficSource();
+  initializeAttribution();
   void flush();
 })();
