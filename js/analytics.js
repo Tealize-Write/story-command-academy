@@ -9,9 +9,15 @@
   let context = {};
   let sending = false;
   let retryTimer;
-  const acknowledgedIds = new Set();
+  const settledIds = new Set();
   let entrySource = "";
   let entryReferrer = "";
+  let latestCompletionStatistics = null;
+
+  function getCompletionStatistics() {
+    return latestCompletionStatistics && Date.now() - latestCompletionStatistics.receivedAt < 20000 ?
+      latestCompletionStatistics.data : null;
+  }
 
   function endpoint() {
     return typeof GAS_URL === "string" && /^https?:\/\//.test(GAS_URL) ? GAS_URL : "";
@@ -22,7 +28,7 @@
     try { stored = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch {}
     const entries = new Map();
     for (const item of [...(Array.isArray(stored) ? stored : []), ...memoryQueue]) {
-      if (item?.payload?.eventId && !acknowledgedIds.has(item.payload.eventId) && Number.isFinite(item.createdAt) &&
+      if (item?.payload?.eventId && !settledIds.has(item.payload.eventId) && Number.isFinite(item.createdAt) &&
           Date.now() - item.createdAt < MAX_AGE) entries.set(item.payload.eventId, item);
     }
     return [...entries.values()].slice(-MAX_EVENTS);
@@ -36,8 +42,8 @@
   }
 
   function removeEvent(eventId) {
-    if (acknowledgedIds.has(eventId)) return false;
-    acknowledgedIds.add(eventId);
+    if (settledIds.has(eventId)) return false;
+    settledIds.add(eventId);
     writeQueue(readQueue().filter(item => item.payload.eventId !== eventId));
     return true;
   }
@@ -131,7 +137,7 @@
         ...details,
         eventId: details.eventId || window.crypto?.randomUUID?.() || `event_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       };
-      if (acknowledgedIds.has(payload.eventId)) return true;
+      if (settledIds.has(payload.eventId)) return true;
       const entries = readQueue();
       if (!entries.some(item => item.payload.eventId === payload.eventId)) {
         entries.push({ payload, createdAt: Date.now(), attempts: 0, nextTry: 0 });
@@ -159,12 +165,37 @@
         if (!response.ok) throw new Error("Analytics HTTP failure.");
         return response.json();
       })()]);
+      // Only an explicit, recognized rejection for this exact event can stop retries.
+      // Service failures, old GAS errors and mismatched replies remain retryable.
+      if (acknowledgement?.status === "error" && acknowledgement.retryable === false &&
+          acknowledgement.eventId === item.payload.eventId &&
+          ["invalid_event", "event_id_conflict"].includes(acknowledgement.code)) {
+        if (removeEvent(item.payload.eventId) && typeof CustomEvent === "function") {
+          document.dispatchEvent(new CustomEvent("analyticsRejected", { detail: {
+            eventId: item.payload.eventId, action: item.payload.action, code: acknowledgement.code,
+          } }));
+        }
+        return;
+      }
       if (acknowledgement.status !== "ok" ||
           (acknowledgement.eventId && acknowledgement.eventId !== item.payload.eventId)) {
         throw new Error("Analytics was not acknowledged.");
       }
-      if (removeEvent(item.payload.eventId) && typeof CustomEvent === "function") {
-        document.dispatchEvent(new CustomEvent("analyticsAcknowledged", { detail: item.payload }));
+      if (removeEvent(item.payload.eventId)) {
+        let statistics;
+        if (item.payload.action === "quiz_completed") {
+          latestCompletionStatistics = null;
+          // A malformed optional snapshot must not cause a successful write to be retried.
+          if (acknowledgement.statistics && acknowledgement.statisticsPending !== true) {
+            try {
+              statistics = window.ACADEMY_STATS.parse(acknowledgement.statistics);
+              latestCompletionStatistics = { data: statistics, receivedAt: Date.now() };
+            } catch {}
+          }
+        }
+        if (typeof CustomEvent === "function") {
+          document.dispatchEvent(new CustomEvent("analyticsAcknowledged", { detail: { ...item.payload, statistics } }));
+        }
       }
     } finally { clearTimeout(timer); }
   }
@@ -222,7 +253,7 @@
     });
   }
 
-  window.ANALYTICS = { track, flush, setContext, getSource: trafficSource };
+  window.ANALYTICS = { track, flush, setContext, getSource: trafficSource, getCompletionStatistics };
   document.addEventListener("click", trackClick, true);
   document.addEventListener("auxclick", trackClick, true);
   document.addEventListener("visibilitychange", () => {

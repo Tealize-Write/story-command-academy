@@ -21,6 +21,7 @@ test('independent drafts, final answer editing, acknowledged statistics, safe ro
   const base = `http://127.0.0.1:${server.address().port}`;
   let browser, complete, count = 0;
   let statsFail = false, chartAvailable = true;
+  let statsRequests = 0, delayNextStats = false, releaseStaleStats;
   const events = [], errors = [];
   try {
     browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : process.platform === 'win32' ? { channel: 'msedge' } : {}) });
@@ -34,9 +35,13 @@ test('independent drafts, final answer editing, acknowledged statistics, safe ro
         if (route.request().method() === 'POST') {
           const payload = JSON.parse(route.request().postData());
           if (payload.action === 'quiz_completed') { events.push(payload); await new Promise(resolve => { complete = resolve; }); count = 1; }
-          return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', eventId: payload.eventId }) });
+          return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', eventId: payload.eventId,
+            ...(payload.action === 'quiz_completed' ? { statistics: { counts: { red: 0, green: 0, blue: count, black: 0, white: 0 }, total: count } } : {}) }) });
         }
-        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(statsFail ? { status: 'error' } : { counts: { red: 0, green: 0, blue: count, black: 0, white: 0 }, total: count }) });
+        statsRequests++;
+        const statistics = statsFail ? { status: 'error' } : { counts: { red: 0, green: 0, blue: count, black: 0, white: 0 }, total: count };
+        if (delayNextStats) { delayNextStats = false; await new Promise(resolve => { releaseStaleStats = resolve; }); }
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(statistics) });
       }
       if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/chart.js')) return chartAvailable ? route.fulfill({ contentType: 'text/javascript', body: 'window.Chart = class { destroy() {} };' }) : route.abort();
       return url.hostname === '127.0.0.1' ? route.continue() : route.abort();
@@ -97,8 +102,21 @@ test('independent drafts, final answer editing, acknowledged statistics, safe ro
     await a.waitForFunction(() => document.getElementById('academyGlobalStatsTotal')?.textContent === '完成次數：0');
     await a.waitForFunction(() => JSON.parse(localStorage.getItem('academyAnalyticsQueue') || '[]').some(item => item.payload.action === 'quiz_completed'));
     while (!complete) await new Promise(resolve => setTimeout(resolve, 10));
+    // A GET started before the POST acknowledgement must not overwrite its newer snapshot.
+    delayNextStats = true;
+    await a.evaluate(() => { void loadGlobalAcademyStats('blue'); });
+    while (!releaseStaleStats) await new Promise(resolve => setTimeout(resolve, 10));
+    const beforeAcknowledgement = statsRequests;
     complete();
     await a.waitForFunction(() => document.getElementById('academyGlobalStatsTotal')?.textContent === '完成次數：1');
+    assert.equal(statsRequests, beforeAcknowledgement, 'completion POST renders without an additional GET');
+    const staleResponse = a.waitForResponse(response => new URL(response.url()).pathname === '/analytics' && response.request().method() === 'GET');
+    releaseStaleStats();
+    await (await staleResponse).finished();
+    await a.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await a.locator('#academyGlobalStatsTotal').innerText(), '完成次數：1');
+    await a.evaluate(() => initializeResultPage());
+    assert.equal(statsRequests, beforeAcknowledgement, 'a render after acknowledgement reuses the in-page POST snapshot');
     assert.equal(events.length, 1);
     assert.ok(events[0].timeSpent >= 86400);
     assert.ok(events[0].activeTimeSpent >= 4 && events[0].activeTimeSpent < 30);
@@ -159,6 +177,7 @@ test('independent drafts, final answer editing, acknowledged statistics, safe ro
     assert.deepEqual(errors, []);
   } finally {
     complete?.();
+    releaseStaleStats?.();
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));
   }
