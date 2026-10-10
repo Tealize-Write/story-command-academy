@@ -1,0 +1,13 @@
+{
+  "name": "story-command-academy",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:unit": "node --test tests/analytics.test.cjs tests/academy-stats.test.cjs tests/gas-contract.test.cjs tests/result-model.test.cjs tests/build.test.cjs",
+    "test:browser": "node --test tests/result-browser.test.cjs tests/project-regressions.test.cjs",
+    "build": "node scripts/build.cjs"
+  },
+  "devDependencies": { "playwright": "1.63.0" }
+}

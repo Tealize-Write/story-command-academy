@@ -48,6 +48,7 @@
       Number.isFinite(record.startedAt) && record.startedAt > 0 && typeof record.source === "string" &&
       Number.isInteger(record.currentIndex) && record.currentIndex >= 0 && record.currentIndex <= questions.length &&
       !!scoreAnswers(record.answers, questions, true) && record.currentIndex <= record.answers.length &&
+      (record.activeMilliseconds === undefined || (Number.isFinite(record.activeMilliseconds) && record.activeMilliseconds >= 0)) &&
       (record.seenStages === undefined || (Array.isArray(record.seenStages) && record.seenStages.every(stage => stage === 0 || stage === 1)));
   }
 

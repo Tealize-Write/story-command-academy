@@ -10,6 +10,8 @@ const ACADEMY_ORDER = window.ACADEMY_THEME?.ORDER || [
 
 let globalCountsCache = null;
 let globalTotalCache = 0;
+let globalUniqueCache;
+let globalStatsRequest = 0;
 let revealTimers = [];
 
 // Three-act reveal is presentation-only. Scoring/result data is computed before this.
@@ -548,6 +550,11 @@ function getResultSummary(key, otherKeys, lang) {
 
 // ── 入口 ────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", initializeResultPage);
+document.addEventListener("analyticsAcknowledged", event => {
+  if (event.detail?.action !== "quiz_completed" || !document.getElementById("result-wrap")) return;
+  const key = getAcademyParam();
+  if (key) { globalCountsCache = null; void loadGlobalAcademyStats(key); }
+});
 function initializeResultPage() {
   const wrap = document.getElementById("result-wrap");
   if (!wrap) return;
@@ -562,10 +569,19 @@ function initializeResultPage() {
         getResultCopy().missingAcademyParam,
       ),
     );
+    const back = el("a", { href: "index.html", className: "index_button" }, getCurrentLang() === "en" ? "Back to quiz" : "回到測驗");
+    wrap.appendChild(back);
+    if (!wrap.dataset.ready) {
+      wrap.dataset.ready = "true";
+      document.addEventListener("langChanged", initializeResultPage);
+    }
     return;
   }
 
   ACADEMY_ORDER.forEach(academy => document.body.classList.remove("theme-" + academy));
+  const analyticsRecord = readLatestResult(key);
+  window.ANALYTICS?.setContext({ keyword: key, attemptId: analyticsRecord?.completionId,
+    source: analyticsRecord?.source });
   renderContent(key);
   if (!wrap.dataset.ready) {
     wrap.dataset.ready = "true";
@@ -579,7 +595,7 @@ function initializeResultPage() {
 
 function getAcademyParam() {
   const p = new URLSearchParams(window.location.search).get("academy");
-  return RESULT_CONTENT[DEFAULT_LANG][p] ? p : null;
+  return ACADEMY_ORDER.includes(p) ? p : null;
 }
 
 // ── 渲染全頁內容 ────────────────────────────────────────────────────────────
@@ -695,7 +711,7 @@ function renderContent(key, options = {}) {
     reportWrap.appendChild(explore);
   }
 
-  reportWrap.appendChild(makeResultConnections(key, t));
+  reportWrap.appendChild(makeResultConnections(t));
 
   const globalStatsWrap = el("div", { className: "score-chart-container" });
   const globalStatsTitle = el(
@@ -722,7 +738,7 @@ function renderContent(key, options = {}) {
 
   updateWinnerName(key);
   if (globalCountsCache) {
-    renderGlobalAcademyStats(globalCountsCache, key, globalTotalCache);
+    renderGlobalAcademyStats(globalCountsCache, key, globalTotalCache, globalUniqueCache);
   }
 
   if (options.instant) {
@@ -762,7 +778,10 @@ function startRevealSequence(key, content, skipBtn) {
     skipBtn?.classList.add("is-hidden");
   };
 
-  skipBtn?.addEventListener("click", revealAll, { once: true });
+  skipBtn?.addEventListener("click", () => {
+    window.ANALYTICS?.track("result_reveal_skipped");
+    revealAll();
+  }, { once: true });
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     revealAll();
@@ -789,19 +808,18 @@ function clearRevealTimers() {
   revealTimers = [];
 }
 
-function makeResultConnections(activeKey, t) {
-  const section = window.AUTHOR_LINKS.create(t, {
-    bindLink: (link, label) => bindTrackedLink(link, label, activeKey),
-  });
+function makeResultConnections(t) {
+  const section = window.AUTHOR_LINKS.create(t);
   section.classList.add("result-actions-grid");
 
   const quizNav = el("nav", { className: "result-quiz-nav" });
   quizNav.setAttribute("aria-label", t.resultQuizActionsLabel);
   const aboutLink = el("a", { className: "result-utility-link", href: "about.html" }, t.aboutLinkText);
   window.AUTHOR_LINKS.decorateLink(aboutLink, "book");
-  bindTrackedLink(aboutLink, t.aboutLinkText, activeKey);
+  aboutLink.dataset.analyticsEvent = "about_opened";
   quizNav.appendChild(aboutLink);
   const retake = el("button", { id: "retake-quiz", className: "res_btn result-retake", type: "button" }, t.retakeText);
+  retake.dataset.analyticsEvent = "quiz_retaken";
   retake.onclick = () => { window.location.href = "index.html?page=quiz&restart=1"; };
   quizNav.appendChild(retake);
   section.appendChild(quizNav);
@@ -824,54 +842,8 @@ function readLatestResult(primary) {
   return records.find(record => model.validResult(record, primary, window.QUIZ_QUESTIONS[DEFAULT_LANG])) || null;
 }
 
-function postActionLog(action, keyword, timeSpent = 0) {
-  if (!GAS_URL || GAS_URL.startsWith("__")) return;
-  const location = getLocationPayload();
-  const payload = {
-    timestamp: new Date().toISOString(),
-    clientId: getClientId(),
-    keyword: keyword || "",
-    action,
-    source: getTrafficSource(),
-    referrer: document.referrer || "",
-    device: getDeviceType(),
-    country: location.country,
-    city: location.city,
-    timeSpent: Number(timeSpent) || 0,
-  };
-  const body = JSON.stringify(payload);
-  if (navigator.sendBeacon) {
-    const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
-    navigator.sendBeacon(GAS_URL, blob);
-    return;
-  }
-  fetch(GAS_URL, {
-    method: "POST",
-    keepalive: true,
-    headers: { "Content-Type": "text/plain" },
-    body,
-  }).catch(() => {});
-}
-
-function bindTrackedLink(link, actionText, keyword) {
-  link.addEventListener("click", (e) => {
-    postActionLog(actionText, keyword, 0);
-
-    const href = link.getAttribute("href");
-    const target = link.getAttribute("target");
-
-    e.preventDefault();
-    if (target === "_blank") {
-      window.open(href, "_blank", "noopener,noreferrer");
-    } else {
-      setTimeout(() => {
-        window.location.href = href;
-      }, 120);
-    }
-  });
-}
-
 async function loadGlobalAcademyStats(activeKey) {
+  const request = ++globalStatsRequest;
   const shelf = document.getElementById("academyGlobalBookShelf");
   if (!shelf) return;
 
@@ -891,12 +863,16 @@ async function loadGlobalAcademyStats(activeKey) {
 
   try {
     const json = await window.ACADEMY_STATS.load(GAS_URL);
+    if (request !== globalStatsRequest) return;
     globalCountsCache = json.counts;
     globalTotalCache = json.total;
-    renderGlobalAcademyStats(globalCountsCache, activeKey, globalTotalCache);
+    globalUniqueCache = json.uniqueParticipants;
+    renderGlobalAcademyStats(globalCountsCache, activeKey, globalTotalCache, globalUniqueCache);
   } catch {
+    if (request !== globalStatsRequest) return;
     globalCountsCache = null;
     globalTotalCache = 0;
+    globalUniqueCache = undefined;
     const totalEl = document.getElementById("academyGlobalStatsTotal");
     if (totalEl) totalEl.textContent = "";
     shelf.innerHTML = "";
@@ -907,6 +883,9 @@ async function loadGlobalAcademyStats(activeKey) {
         copy.globalStatsLoadFailed,
       ),
     );
+    const retry = el("button", { type: "button", className: "secondary-button" }, getCurrentLang() === "en" ? "Retry" : "重新讀取");
+    retry.onclick = () => { retry.disabled = true; void loadGlobalAcademyStats(activeKey); };
+    shelf.appendChild(retry);
   }
 }
 
@@ -987,7 +966,7 @@ function getAcademyColors() {
   };
 }
 
-function renderGlobalAcademyStats(counts, activeKey, total) {
+function renderGlobalAcademyStats(counts, activeKey, total, uniqueParticipants) {
   const shelf = document.getElementById("academyGlobalBookShelf");
   const totalEl = document.getElementById("academyGlobalStatsTotal");
   if (!shelf || !totalEl) return;
@@ -1005,8 +984,7 @@ function renderGlobalAcademyStats(counts, activeKey, total) {
   }
 
   const values = ACADEMY_ORDER.map((k) => Number(counts[k]) || 0);
-  totalEl.textContent =
-    (t.totalParticipants || "") + (total || values.reduce((a, b) => a + b, 0));
+  totalEl.textContent = window.ACADEMY_STATS.describe({ total: total ?? values.reduce((a, b) => a + b, 0), uniqueParticipants }, t);
   renderBarShelf(shelf, values, activeKey);
 }
 

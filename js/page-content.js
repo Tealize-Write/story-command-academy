@@ -4,14 +4,21 @@
   if (!root) return;
 
   const mode = new URLSearchParams(window.location.search).get("page");
-  const page = mode || document.body.getAttribute("data-page") || "index";
+  const requested = mode || document.body.getAttribute("data-page") || "index";
+  const page = ["index", "quiz", "result"].includes(requested) ? requested : "index";
+  if (page !== requested) {
+    const params = new URLSearchParams(location.search);
+    params.delete("page"); params.delete("academy");
+    history.replaceState(null, "", location.pathname + (params.size ? "?" + params : ""));
+  }
   const templates = {
     index: `
       <div class="fade-in index-page">
         <h1 data-i18n-key="pageTitle"></h1>
 
         <figure class="fig">
-          <img src="img/index.jpg" alt="Creative trait quiz visual" data-i18n-key="indexHeroAlt" data-i18n-attr="alt"
+          <img src="img/index-1280.jpg" srcset="img/index-640.jpg 640w, img/index-1280.jpg 1280w, img/index.jpg 3105w"
+               sizes="(max-width: 600px) calc(100vw - 48px), 1000px" alt="Creative trait quiz visual" data-i18n-key="indexHeroAlt" data-i18n-attr="alt"
                width="3105" height="1545">
         </figure>
 
@@ -49,7 +56,7 @@
           <div class="index-start">
             <p class="index-outcome" data-i18n-key="indexAfterAnalysis"></p>
             <p class="index-good-luck" data-i18n-key="indexGoodLuck"></p>
-            <a href="index.html?page=quiz" class="index_button" data-i18n-key="startQuizBtn">開始測驗</a>
+            <a href="index.html?page=quiz" class="index_button" data-i18n-key="startQuizBtn" data-analytics-event="quiz_entry_clicked">開始測驗</a>
           </div>
         </div>
 
@@ -97,6 +104,15 @@
           <p id="tie-description"></p>
           <div id="tie-options"></div>
           <button id="tie-auto" class="res_btn" type="button"></button>
+          <button id="tie-back" class="secondary-button" type="button" data-i18n-key="reviewAnswersBtn"></button>
+        </section>
+        <section id="review-card" class="resume-card" style="display:none;" aria-labelledby="review-title">
+          <h2 id="review-title" tabindex="-1" data-i18n-key="reviewTitle"></h2>
+          <p data-i18n-key="reviewDescription"></p>
+          <div class="quiz-controls">
+            <button id="review-back" class="secondary-button" type="button" data-i18n-key="reviewAnswersBtn"></button>
+            <button id="finish-quiz" type="button" data-i18n-key="viewResultBtn"></button>
+          </div>
         </section>
         <p id="save-status" class="save-status" role="status"></p>
       </div>

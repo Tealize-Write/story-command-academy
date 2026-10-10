@@ -5,7 +5,7 @@ const path = require('node:path');
 const http = require('node:http');
 const vm = require('node:vm');
 // Use PLAYWRIGHT_MODULE to point to another installation if needed.
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/CODE/Github_Mine/Oblivraith-game/Oblivraith-Game/node_modules/playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const output = path.resolve('artifacts/player-review/phase1');
 
 test('quiz progress, compact layout, result rendering and completion', { timeout: 120000 }, async () => {
@@ -25,24 +25,51 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const errors = [], posts = [], observations = [];
-  let statsFixture = { counts: { red: 5, green: 10, blue: 15, black: 10, white: 10 }, total: 50 };
+  const errors = [], posts = [], events = [], observations = [];
+  let statsFixture = { counts: { red: 5, green: 10, blue: 15, black: 10, white: 10 }, total: 50, uniqueParticipants: 32 };
   let browser;
   try {
-    browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_EXECUTABLE || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' });
+    browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : process.platform === 'win32' ? { channel: 'msedge' } : {}) });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     await context.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.pathname === '/js/config.js') return route.fulfill({ contentType: 'text/javascript', body: `const GAS_URL = '${base}/analytics'; function getClientId(){return 'test';} function getTrafficSource(){return new URLSearchParams(location.search).get('source') || 'direct';} function getDeviceType(){return 'test';} function getLocationPayload(){return {country:'unknown',city:'unknown'};}` });
       if (url.pathname === '/analytics') {
-        if (route.request().method() === 'POST') posts.push(JSON.parse(route.request().postData()));
+        if (route.request().method() === 'POST') {
+          const payload = JSON.parse(route.request().postData());
+          if (!events.some(event => event.eventId === payload.eventId)) {
+            events.push(payload);
+            if (payload.action === 'quiz_completed') posts.push(payload);
+          }
+          return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', eventId: payload.eventId }) });
+        }
         return route.fulfill({ contentType: 'application/json', body: JSON.stringify(statsFixture) });
       }
-      if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.endsWith('/chart.js')) return route.fulfill({ contentType: 'text/javascript', body: 'window.Chart = class { destroy() {} };' });
+      if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/chart.js')) return route.fulfill({ contentType: 'text/javascript', body: 'window.Chart = class { destroy() {} };' });
       return url.hostname === '127.0.0.1' ? route.continue() : route.abort();
     });
     const page = await context.newPage();
     page.on('pageerror', err => errors.push(err.message));
+    async function checkConnectionTracking(expectedPage) {
+      const selectors = [
+        ['.result-works .result-utility-link', 'personal_website_clicked', ''],
+        ...['penana', 'kadokado', 'cxc'].map((platform, i) => [`.result-reading-link:nth-of-type(${i + 1})`, 'work_link_clicked', platform]),
+        ...['facebook', 'instagram', 'threads', 'plurk'].map(platform => [`.result-social-link[data-platform="${platform}"]`, 'social_link_clicked', platform]),
+      ];
+      for (const [selector, action, platform] of selectors) {
+        const link = page.locator(selector);
+        // Exercise the real click handler without leaving for third-party websites.
+        await link.evaluate(element => element.addEventListener('click', e => e.preventDefault(), { once: true }));
+        const sent = page.waitForRequest(request => request.url() === `${base}/analytics` && request.method() === 'POST' &&
+          request.postDataJSON().action === action && request.postDataJSON().platform === platform);
+        await link.click();
+        const payload = (await sent).postDataJSON();
+        assert.equal(payload.page, expectedPage);
+        assert.equal(payload.language, await page.locator('html').getAttribute('lang'));
+        assert.equal(payload.target, await link.getAttribute('href'));
+        assert.ok(payload.eventId);
+      }
+    }
     await page.goto(base);
     assert.equal(await page.locator('.lang-btn').count(), 2);
     assert.equal(await page.locator('.lang-btn[data-lang="en"]').isVisible(), true);
@@ -122,7 +149,12 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.setViewportSize({ width: 320, height: 720 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.evaluate(() => {
+    await page.evaluate(() => sessionStorage.setItem('invalidate-draft-on-load', '1'));
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('invalidate-draft-on-load') !== '1') return;
+      sessionStorage.removeItem('invalidate-draft-on-load');
+      sessionStorage.removeItem('academyQuizActiveAttempt');
+      for (const key of Object.keys(localStorage)) if (key.startsWith('academyQuizDraft:')) localStorage.removeItem(key);
       for (const storage of [localStorage, sessionStorage]) storage.setItem('academyQuizDraft', JSON.stringify({ version: 'old', answers: [999], currentIndex: 99 }));
     });
     await page.reload();
@@ -157,8 +189,10 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     ]);
     const workAuthorLinks = await page.locator('.result-works a, .result-author a').evaluateAll(links =>
       links.map(link => ({ href: link.href, label: link.getAttribute('aria-label') || link.textContent.trim(), rel: link.rel })));
+    await checkConnectionTracking('result');
     await page.waitForFunction(() => document.querySelectorAll('#academyGlobalBookShelf .academy-book-score').length === 5);
     assert.deepEqual(await page.locator('#academyGlobalBookShelf .academy-book-score').allTextContents(), ['10%', '20%', '30%', '20%', '20%']);
+    assert.equal(await page.locator('#academyGlobalStatsTotal').innerText(), '完成次數：50 · 參與者：32');
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.screenshot({ path: path.join(output, 'desktop-result.png'), fullPage: true, animations: 'disabled' });
     await page.locator('.result-connections').screenshot({ path: path.join(progressOutput, 'desktop-result-links.png'), animations: 'disabled' });
@@ -245,6 +279,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
       await page.waitForFunction(index => qIndex === index && !advancing, i);
       await page.locator('.quiz-option-btn').nth(persona[i]).click();
     }
+    await page.locator('#finish-quiz').click();
     await page.waitForURL('**/*page=result*');
     await page.waitForFunction(() => document.querySelectorAll('#academyBookShelf .academy-book-score').length === 5);
     const completed = await page.evaluate(() => JSON.parse(sessionStorage.getItem('latestAcademyScores')));
@@ -326,7 +361,9 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
       scores = QUIZ_RESULT_MODEL.scoreAnswers(answers, QUIZ_QUESTIONS[currentLang]);
       qIndex = answers.length;
       showResult();
+      saveProgress();
     }, answers);
+    await page.locator('#finish-quiz').click();
     assert.equal(posts.length, beforeTie);
     const candidates = await page.locator('#tie-options button').allTextContents();
     assert.equal(candidates.length, model.classify(tiedScores).top.length);
@@ -337,7 +374,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.screenshot({ path: path.join(output, 'mobile-tie-decision.png'), fullPage: true, animations: 'disabled' });
     assert.equal(posts.length, beforeTie);
     const chosen = model.classify(tiedScores).top.at(-1);
-    const tieResponse = page.waitForResponse(response => response.url() === `${base}/analytics` && response.request().method() === 'POST');
+    const tieResponse = page.waitForResponse(response => response.url() === `${base}/analytics` && response.request().method() === 'POST' && response.request().postDataJSON().action === 'quiz_completed');
     await page.evaluate(chosen => {
       // An invalid academy and a duplicate completion must not create extra records.
       completeResult('invalid', 'player');
@@ -363,13 +400,14 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
 
     // Automatic tie decision retains the original reverse-answer rule.
     await page.evaluate(({ answers, tiedScores }) => {
-      sessionStorage.setItem('pendingAcademyTie', JSON.stringify({ version: QUIZ_RESULT_MODEL.VERSION, answers, scores: tiedScores, startedAt: Date.now(), source: 'auto' }));
+      sessionStorage.setItem('academyQuizActiveAttempt', JSON.stringify('auto-fixture'));
+      sessionStorage.setItem('pendingAcademyTie', JSON.stringify({ attemptId: 'auto-fixture', version: QUIZ_RESULT_MODEL.VERSION, answers, scores: tiedScores, startedAt: Date.now(), source: 'auto' }));
       localStorage.setItem('lang', 'zh-TW');
     }, { answers: [...answers], tiedScores: [...tiedScores] });
     await page.goto(`${base}/index.html?page=quiz`);
     const automatic = await page.evaluate(() => ACADEMIES[breakTie(QUIZ_RESULT_MODEL.classify(scores).top.map(key => QUIZ_RESULT_MODEL.ORDER.indexOf(key)))].key);
     const beforeAuto = posts.length;
-    const autoResponse = page.waitForResponse(response => response.url() === `${base}/analytics` && response.request().method() === 'POST');
+    const autoResponse = page.waitForResponse(response => response.url() === `${base}/analytics` && response.request().method() === 'POST' && response.request().postDataJSON().action === 'quiz_completed');
     await page.locator('#tie-auto').click();
     await autoResponse;
     await page.waitForURL('**/*page=result*');
@@ -393,6 +431,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
       answerHistory = answers; qIndex = answers.length;
       scores = QUIZ_RESULT_MODEL.scoreAnswers(answers, QUIZ_QUESTIONS[currentLang]); showResult();
     }, persona);
+    await restricted.locator('#finish-quiz').click();
     await restricted.waitForURL('**/*page=result*');
     assert.equal(await restricted.locator('#academyBookShelf .academy-book-score').count(), 5);
     assert.ok((await restricted.locator('.save-status').innerText()).includes('cannot be saved'));
@@ -446,6 +485,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     assert.equal(await page.locator('#about-works-title').innerText(), '作品介紹與連結');
     assert.deepEqual(await page.locator('.result-works a, .result-author a').evaluateAll(links =>
       links.map(link => ({ href: link.href, label: link.getAttribute('aria-label') || link.textContent.trim(), rel: link.rel }))), workAuthorLinks);
+    await checkConnectionTracking('about');
     assert.equal(await page.locator('#about-quiz-link').getAttribute('href'), 'index.html');
     assert.equal(await page.locator('.res_btn').count(), 1);
     assert.equal(await page.locator('[data-i18n-key="aboutOriginP1"]').innerText(),
@@ -458,17 +498,37 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.locator('.lang-btn[data-lang="en"]').click();
     assert.equal(await page.locator('#about-works-title').innerText(), 'The Story Behind the Academies');
     assert.equal(await page.locator('.result-work-cover').getAttribute('alt'), 'Word Fate Awakening, volume one cover');
+    await checkConnectionTracking('about');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.locator('#about-connections').screenshot({ path: path.join(progressOutput, 'mobile-about-links-en-320.png'), animations: 'disabled' });
     await page.locator('.lang-btn[data-lang="zh-TW"]').click();
     assert.equal(await page.locator('#about-works-title').innerText(), '作品介紹與連結');
     assert.equal(await page.locator('#about-quiz-link').innerText(), '回到測驗');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.goto(`${base}/index.html?page=result&academy=blue`);
+    await page.locator('.result-quiz-nav a.result-utility-link').click();
+    await page.waitForURL(`${base}/about.html`);
+    await page.locator('#about-quiz-link').click();
+    await page.waitForURL(`${base}/index.html`);
+    await page.locator('.index_button').click();
+    await page.locator('#question-text').waitFor({ state: 'visible' });
+    await page.locator('.quiz-option-btn').first().click();
+    await page.waitForFunction(() => qIndex === 1 && !advancing);
+    await page.reload();
+    await page.locator('#resume-card').waitFor({ state: 'visible' });
+    const restarted = page.waitForRequest(request => request.url() === `${base}/analytics` && request.method() === 'POST' && request.postDataJSON().action === 'quiz_restarted');
+    await page.locator('#restart-quiz').click();
+    await page.locator('#question-text').waitFor({ state: 'visible' });
+    await restarted;
+    for (const action of ['quiz_started', 'quiz_resumed', 'quiz_restarted', 'quiz_retaken', 'quiz_returned', 'quiz_entry_clicked', 'language_changed', 'about_opened']) {
+      assert.ok(events.some(event => event.action === action), `Missing analytics event: ${action}`);
+    }
+    assert.equal(posts.at(-1).eventId, `quiz_completed:${posts.at(-1).attemptId}`);
     assert.deepEqual(errors, []);
     observations.push({ completed, tieScores: [...tiedScores], chosen, automatic, completedPosts: posts.length, errors });
     await context.close();
   } finally {
-    fs.writeFileSync(path.join(output, 'checks.json'), JSON.stringify({ observations, errors, posts }, null, 2));
+    fs.writeFileSync(path.join(output, 'checks.json'), JSON.stringify({ observations, errors, posts, events }, null, 2));
     await browser?.close();
     await new Promise(resolve => server.close(resolve));
   }
