@@ -10,6 +10,7 @@ function setup(options = {}) {
   const session = options.session || new Map();
   const handlers = {};
   const requests = [];
+  const acknowledgements = [];
   const timers = new Map(); let nextTimer = 0;
   let nextId = 0;
   const storage = map => ({ getItem: key => map.get(key) || null, setItem: (key, value) => map.set(key, value) });
@@ -17,7 +18,8 @@ function setup(options = {}) {
     window: { currentLang: 'en', crypto: { randomUUID: () => `event-${++nextId}` },
       addEventListener: (name, fn) => { handlers[name] = fn; } },
     document: { body: { dataset: { page: 'index' } }, documentElement: { lang: 'en' }, referrer: options.referrer || '',
-      addEventListener: (name, fn) => { handlers[name] = fn; } },
+      addEventListener: (name, fn) => { handlers[name] = fn; },
+      dispatchEvent: event => acknowledgements.push(event) },
     location: { origin: 'https://tealize-write.github.io', pathname: options.pathname || '/story-command-academy/about.html', search: options.search ?? '?source=instagram' },
     localStorage: storage(values), sessionStorage: storage(session),
     navigator: { sendBeacon: options.beacon || (() => false) }, Blob, URL, URLSearchParams,
@@ -25,6 +27,8 @@ function setup(options = {}) {
     getClientId: () => 'client-1', getDeviceType: () => 'mobile',
     getLocationPayload: () => ({ country: 'Taiwan', city: 'Taipei' }),
     AbortController,
+    Date: options.Date || Date,
+    CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
     setTimeout: (fn, ms) => { const id = ++nextTimer; timers.set(id, { fn, ms }); return id; },
     clearTimeout: id => timers.delete(id),
     fetch: async (url, init) => {
@@ -35,8 +39,9 @@ function setup(options = {}) {
   });
   if (options.blocked) Object.defineProperty(context, 'localStorage', { get() { throw new Error('Blocked'); } });
   if (options.blockedSession) Object.defineProperty(context, 'sessionStorage', { get() { throw new Error('Blocked'); } });
+  vm.runInContext(fs.readFileSync('js/academy-stats.js', 'utf8'), context);
   vm.runInContext(code, context);
-  return { context, api: context.window.ANALYTICS, requests, handlers, values, timers, session };
+  return { context, api: context.window.ANALYTICS, requests, acknowledgements, handlers, values, timers, session };
 }
 
 test('untagged visits identify external sources and do not treat internal pages as acquisition', async () => {
@@ -148,6 +153,47 @@ test('HTTP 200 with GAS error is retained rather than treated as a successful wr
   assert.equal(JSON.parse(state.values.get('academyAnalyticsQueue')).length, 1);
 });
 
+test('explicit permanent rejections leave the queue without acknowledging a completion or retrying it', async () => {
+  for (const code of ['invalid_event', 'event_id_conflict']) {
+    const state = setup({ fetch: async (url, init) => ({ ok: true, json: async () => ({ status: 'error',
+      code, retryable: false, eventId: JSON.parse(init.body).eventId }) }) });
+    state.api.track('quiz_completed', { eventId: 'rejected', keyword: 'red' }); await tick();
+    assert.deepEqual(JSON.parse(state.values.get('academyAnalyticsQueue')), []);
+    assert.equal(state.api.getCompletionStatistics(), null);
+    assert.equal(state.acknowledgements.filter(event => event.type === 'analyticsAcknowledged').length, 0);
+    assert.equal(state.acknowledgements.filter(event => event.type === 'analyticsRejected').length, 1);
+    await state.api.flush(true); state.handlers.pagehide(); await tick();
+    assert.equal(state.requests.length, 1);
+    state.api.track('quiz_completed', { eventId: 'rejected', keyword: 'red' }); await tick();
+    assert.equal(state.requests.length, 1, 'the same rejected event is settled within this page');
+  }
+});
+
+test('mismatched and unknown rejection responses remain queued while later valid events still send', async () => {
+  for (const response of [
+    { status: 'error', code: 'event_id_conflict', retryable: false, eventId: 'wrong' },
+    { status: 'error', code: 'unknown', retryable: false, eventId: 'pending' },
+    { status: 'error', code: 'invalid_event', retryable: false },
+    { status: 'error', code: 'event_id_conflict', retryable: true, eventId: 'pending' },
+  ]) {
+    const state = setup({ fetch: async () => ({ ok: true, json: async () => response }) });
+    state.api.track('quiz_started', { eventId: 'pending' }); await tick();
+    assert.equal(JSON.parse(state.values.get('academyAnalyticsQueue')).length, 1);
+    assert.equal(state.acknowledgements.length, 0);
+  }
+  const state = setup({ fetch: async (url, init) => {
+    const eventId = JSON.parse(init.body).eventId;
+    return { ok: true, json: async () => eventId === 'bad' ?
+      { status: 'error', code: 'event_id_conflict', retryable: false, eventId } : { status: 'ok', eventId } };
+  } });
+  state.api.track('quiz_started', { eventId: 'bad' });
+  state.api.track('quiz_completed', { eventId: 'good', keyword: 'blue' }); await tick();
+  await state.api.flush(true); await tick();
+  assert.deepEqual(JSON.parse(state.values.get('academyAnalyticsQueue')), []);
+  assert.deepEqual(state.requests.map(request => request.payload.eventId), ['bad', 'good']);
+  assert.equal(state.acknowledgements.filter(event => event.type === 'analyticsAcknowledged').length, 1);
+});
+
 test('failed beacon uses keepalive fetch and successful beacon waits for server acknowledgement', async () => {
   for (const accepted of [false, true]) {
     let recovered = false;
@@ -204,4 +250,47 @@ test('a stalled request times out and later completion events still send with st
   await state.api.flush(true); await tick();
   assert.ok(state.requests.some(request => request.payload.eventId === 'finish'));
   assert.deepEqual(JSON.parse(state.values.get('academyAnalyticsQueue')), []);
+});
+
+test('valid completion POST statistics are sanitized, delivered once and expire after twenty seconds', async () => {
+  let now = 1000;
+  const statistics = { counts: { red: 0, green: 0, blue: 2, black: 0, white: 0 }, total: 2, uniqueParticipants: 1,
+    cursor: 'private', countsExtra: 'untrusted' };
+  const state = setup({ Date: class extends Date { static now() { return now; } }, fetch: async () =>
+    ({ ok: true, json: async () => ({ status: 'ok', eventId: 'complete', statistics, statisticsPending: false, keyword: 'forged' }) }) });
+  state.api.track('quiz_completed', { eventId: 'complete', keyword: 'blue' }); await tick();
+  assert.deepEqual(JSON.parse(JSON.stringify(state.api.getCompletionStatistics())), {
+    counts: statistics.counts, total: 2, uniqueParticipants: 1 });
+  assert.equal(state.acknowledgements.length, 1);
+  assert.equal(state.acknowledgements[0].detail.keyword, 'blue', 'the response cannot replace the recorded event');
+  assert.equal(state.acknowledgements[0].detail.statistics.cursor, undefined);
+  state.api.track('quiz_completed', { eventId: 'complete' }); await tick();
+  assert.equal(state.acknowledgements.length, 1);
+  now += 20000;
+  assert.equal(state.api.getCompletionStatistics(), null);
+});
+
+test('old, invalid and pending POST snapshots do not retry acknowledged events or expose partial statistics', async () => {
+  const counts = { red: 0, green: 0, blue: 1, black: 0, white: 0 };
+  for (const response of [{}, { statistics: { counts, total: 0 } },
+    { statistics: { counts, total: 1 }, statisticsPending: true }]) {
+    const state = setup({ fetch: async () => ({ ok: true, json: async () => ({ status: 'ok', ...response }) }) });
+    state.api.track('quiz_completed', { eventId: 'complete' }); await tick();
+    assert.equal(state.api.getCompletionStatistics(), null);
+    assert.deepEqual(JSON.parse(state.values.get('academyAnalyticsQueue')), []);
+    assert.equal(state.acknowledgements.length, 1);
+    assert.equal(state.acknowledgements[0].detail.statistics, undefined);
+  }
+});
+
+test('an acknowledged completion without a snapshot clears the previous in-page snapshot', async () => {
+  let includeStatistics = true;
+  const statistics = { counts: { red: 1, green: 0, blue: 0, black: 0, white: 0 }, total: 1 };
+  const state = setup({ fetch: async () => ({ ok: true, json: async () =>
+    ({ status: 'ok', ...(includeStatistics ? { statistics } : {}) }) }) });
+  state.api.track('quiz_completed', { eventId: 'one', keyword: 'red' }); await tick();
+  assert.equal(state.api.getCompletionStatistics().total, 1);
+  includeStatistics = false;
+  state.api.track('quiz_completed', { eventId: 'two', keyword: 'blue' }); await tick();
+  assert.equal(state.api.getCompletionStatistics(), null);
 });

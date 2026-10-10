@@ -862,7 +862,10 @@ async function loadGlobalAcademyStats(activeKey) {
   }
 
   try {
-    const json = await window.ACADEMY_STATS.load(GAS_URL);
+    // Reuse the validated completion POST snapshot when available, including an
+    // acknowledgement received before this result page rendered. Older GAS falls back to GET.
+    const posted = window.ANALYTICS?.getCompletionStatistics?.();
+    const json = posted ? window.ACADEMY_STATS.parse(posted) : await window.ACADEMY_STATS.load(GAS_URL);
     if (request !== globalStatsRequest) return;
     globalCountsCache = json.counts;
     globalTotalCache = json.total;
