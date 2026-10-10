@@ -83,15 +83,32 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.goto(`${base}/index.html?page=quiz&restart=1&source=progress-test`);
     assert.equal(await page.locator('#previous-question').isDisabled(), true);
     assert.equal(await page.locator('#section-card').getAttribute('open'), '');
-    await page.evaluate(() => scrollTo(0, 0));
-    assert.ok((await page.locator('#question-text').boundingBox()).y < 250);
+    // Judge the visible mobile layout after fonts, scrolling and the reveal settle.
+    // A fixed 250px cutoff varies with platform fonts and can sample a smooth scroll.
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    const viewportHeight = page.viewportSize().height;
+    const questionBox = await page.locator('#question-text').boundingBox();
+    const expandedSectionBox = await page.locator('#section-card').boundingBox();
+    assert.ok(questionBox.y >= 0 && questionBox.y < viewportHeight * 0.35,
+      `Question should appear in the first third of the mobile screen: ${JSON.stringify(questionBox)}`);
     assert.equal(await page.locator('.degree-option').count(), 4);
+    for (const option of await page.locator('.degree-option').all()) {
+      const box = await option.boundingBox();
+      assert.ok(box.y >= questionBox.y + questionBox.height && box.y + box.height <= viewportHeight,
+        `All answer options should fit on the first mobile screen: ${JSON.stringify(box)}`);
+    }
     await page.screenshot({ path: path.join(progressOutput, 'mobile-quiz.png'), animations: 'disabled' });
     await page.locator('.quiz-option-btn').nth(1).click();
     await page.evaluate(() => document.querySelector('.quiz-option-btn').click());
     await page.waitForFunction(() => qIndex === 1 && !advancing);
     assert.equal(await page.evaluate(() => answerHistory.length), 1);
     assert.equal(await page.locator('#section-card').getAttribute('open'), null);
+    assert.ok((await page.locator('#section-card').boundingBox()).height < expandedSectionBox.height,
+      'The stage introduction should shrink after the first answer');
     await page.locator('#previous-question').click();
     assert.equal(await page.locator('.quiz-option-btn').nth(1).getAttribute('aria-pressed'), 'true');
     await page.locator('.quiz-option-btn').nth(2).click();
