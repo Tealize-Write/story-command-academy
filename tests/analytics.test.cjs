@@ -7,7 +7,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 
 function setup(options = {}) {
   const values = options.values || new Map();
-  const session = new Map();
+  const session = options.session || new Map();
   const handlers = {};
   const requests = [];
   const timers = new Map(); let nextTimer = 0;
@@ -16,11 +16,11 @@ function setup(options = {}) {
   const context = vm.createContext({
     window: { currentLang: 'en', crypto: { randomUUID: () => `event-${++nextId}` },
       addEventListener: (name, fn) => { handlers[name] = fn; } },
-    document: { body: { dataset: { page: 'index' } }, documentElement: { lang: 'en' }, referrer: '',
+    document: { body: { dataset: { page: 'index' } }, documentElement: { lang: 'en' }, referrer: options.referrer || '',
       addEventListener: (name, fn) => { handlers[name] = fn; } },
-    location: { pathname: '/about.html', search: '?source=instagram' },
+    location: { origin: 'https://tealize-write.github.io', pathname: options.pathname || '/story-command-academy/about.html', search: options.search ?? '?source=instagram' },
     localStorage: storage(values), sessionStorage: storage(session),
-    navigator: { sendBeacon: options.beacon || (() => false) }, Blob, URLSearchParams,
+    navigator: { sendBeacon: options.beacon || (() => false) }, Blob, URL, URLSearchParams,
     GAS_URL: options.url ?? 'https://example.invalid/gas',
     getClientId: () => 'client-1', getDeviceType: () => 'mobile',
     getLocationPayload: () => ({ country: 'Taiwan', city: 'Taipei' }),
@@ -34,9 +34,73 @@ function setup(options = {}) {
     },
   });
   if (options.blocked) Object.defineProperty(context, 'localStorage', { get() { throw new Error('Blocked'); } });
+  if (options.blockedSession) Object.defineProperty(context, 'sessionStorage', { get() { throw new Error('Blocked'); } });
   vm.runInContext(code, context);
-  return { context, api: context.window.ANALYTICS, requests, handlers, values, timers };
+  return { context, api: context.window.ANALYTICS, requests, handlers, values, timers, session };
 }
+
+test('untagged visits identify external sources and do not treat internal pages as acquisition', async () => {
+  for (const [referrer, expected] of [
+    ['https://www.threads.com/@tealize_write/post/123', 'threads'],
+    ['https://l.threads.net/', 'threads'],
+    ['https://l.instagram.com/', 'instagram'],
+    ['https://www.facebook.com/', 'facebook'],
+    ['https://www.plurk.com/', 'plurk'],
+    ['https://www.google.com.tw/search?q=quiz', 'google'],
+    ['https://reader.example/story', 'reader.example'],
+    ['https://tealize-write.github.io/', 'tealize-write.github.io'],
+    ['https://tealize-write.github.io/story-command-academy/index.html', 'direct'],
+    ['https://instagram.com.example.org/', 'instagram.com.example.org'],
+    ['', 'direct'],
+    ['invalid referrer', 'direct'],
+  ]) {
+    const state = setup({ search: '', referrer });
+    state.api.track('quiz_started'); await tick();
+    assert.equal(state.requests[0].payload.source, expected, referrer);
+    if (expected !== 'direct') assert.equal(state.requests[0].payload.referrer, referrer);
+    else assert.equal(state.requests[0].payload.referrer, '');
+  }
+});
+
+test('explicit source tags take priority and identify Threads when the app provides no referrer', async () => {
+  for (const search of ['?source=threads', '?utm_source=threads']) {
+    const state = setup({ search });
+    state.api.track('quiz_started'); await tick();
+    assert.equal(state.requests[0].payload.source, 'threads');
+    assert.equal(state.requests[0].payload.referrer, '');
+  }
+  const tagged = setup({ search: '?source=threads_post&utm_source=instagram', referrer: 'https://www.facebook.com/' });
+  assert.equal(tagged.api.getSource(), 'threads_post');
+});
+
+test('entry source and original referrer survive quiz to about navigation and a fresh external visit updates them', async () => {
+  const first = setup({ search: '', referrer: 'https://www.threads.com/', pathname: '/story-command-academy/index.html' });
+  first.api.track('quiz_completed', { keyword: 'blue' }); await tick();
+  const about = setup({ search: '', referrer: 'https://tealize-write.github.io/story-command-academy/index.html?page=result&academy=blue', session: first.session });
+  about.api.track('work_link_clicked', { platform: 'penana' }); await tick();
+  assert.equal(about.requests[0].payload.source, 'threads');
+  assert.equal(about.requests[0].payload.referrer, 'https://www.threads.com/');
+  const next = setup({ search: '', referrer: 'https://www.plurk.com/', session: first.session });
+  next.api.track('social_link_clicked', { platform: 'instagram' }); await tick();
+  assert.equal(next.requests[0].payload.source, 'plurk');
+  assert.equal(next.requests[0].payload.referrer, 'https://www.plurk.com/');
+  const taggedApp = setup({ search: '?source=threads', session: first.session });
+  taggedApp.api.track('quiz_started'); await tick();
+  assert.equal(taggedApp.requests[0].payload.source, 'threads');
+  assert.equal(taggedApp.requests[0].payload.referrer, '');
+});
+
+test('a resumed attempt source persists for later pages, and blocked session storage retains in-page attribution', async () => {
+  const resumed = setup({ search: '' });
+  resumed.api.setContext({ source: 'instagram' });
+  resumed.api.track('quiz_completed', { keyword: 'green' }); await tick();
+  const about = setup({ search: '', session: resumed.session });
+  assert.equal(about.api.getSource(), 'instagram');
+  const blocked = setup({ search: '?source=threads', blockedSession: true });
+  blocked.context.location.search = '';
+  blocked.api.track('work_link_clicked', { platform: 'cxc' }); await tick();
+  assert.equal(blocked.requests[0].payload.source, 'threads');
+});
 
 test('sends fixed event names and separates page, platform, language and target', async () => {
   const state = setup();

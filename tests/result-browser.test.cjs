@@ -50,7 +50,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     });
     const page = await context.newPage();
     page.on('pageerror', err => errors.push(err.message));
-    async function checkConnectionTracking(expectedPage) {
+    async function checkConnectionTracking(expectedPage, expectedSource) {
       const selectors = [
         ['.result-works .result-utility-link', 'personal_website_clicked', ''],
         ...['penana', 'kadokado', 'cxc'].map((platform, i) => [`.result-reading-link:nth-of-type(${i + 1})`, 'work_link_clicked', platform]),
@@ -65,6 +65,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
         await link.click();
         const payload = (await sent).postDataJSON();
         assert.equal(payload.page, expectedPage);
+        if (expectedSource) assert.equal(payload.source, expectedSource);
         assert.equal(payload.language, await page.locator('html').getAttribute('lang'));
         assert.equal(payload.target, await link.getAttribute('href'));
         assert.ok(payload.eventId);
@@ -80,6 +81,18 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     await page.reload();
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
     await page.locator('.lang-btn[data-lang="zh-TW"]').click();
+    // A tagged Threads entry keeps its attribution after the URL loses its UTM.
+    await page.goto(`${base}/index.html?utm_source=threads`);
+    const threadsStart = page.waitForRequest(request => request.url() === `${base}/analytics` &&
+      request.method() === 'POST' && request.postDataJSON().action === 'quiz_started');
+    await page.locator('.index_button').click();
+    await page.waitForURL('**/*page=quiz');
+    assert.equal((await threadsStart).postDataJSON().source, 'threads');
+    await page.goto(`${base}/index.html?page=result&academy=blue`);
+    await page.locator('.result-quiz-nav a.result-utility-link').click();
+    await page.waitForURL(`${base}/about.html`);
+    await checkConnectionTracking('about', 'threads');
+    assert.equal(events.find(event => event.action === 'work_link_clicked' && event.source === 'threads').referrer, '');
     await page.goto(`${base}/index.html?page=quiz&restart=1&source=progress-test`);
     assert.equal(await page.locator('#previous-question').isDisabled(), true);
     assert.equal(await page.locator('#section-card').getAttribute('open'), '');
