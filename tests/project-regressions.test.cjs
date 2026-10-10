@@ -106,23 +106,42 @@ test('independent drafts, final answer editing, acknowledged statistics, safe ro
     assert.deepEqual(await a.evaluate(() => window.currentQuizResult.scores), [6, 8, 28, 9, 7]);
     assert.equal(await a.locator('#save-result-card').count(), 0);
     assert.equal(await a.locator('.result-quiz-nav > *').count(), 2);
+    async function footerLayout() {
+      await a.mouse.move(0, 0);
+      return a.evaluate(async () => {
+        await document.fonts.ready;
+        scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const nav = document.querySelector('.result-quiz-nav');
+        const link = nav.querySelector('.result-utility-link').getBoundingClientRect();
+        const retake = document.getElementById('retake-quiz').getBoundingClientRect();
+        const label = nav.querySelector('.result-utility-label');
+        // Read both controls in one frame; separate browser calls can span a scroll
+        // or responsive reflow and make non-overlapping buttons appear to overlap.
+        return {
+          link: { x: link.x, y: link.y, width: link.width, height: link.height },
+          retake: { x: retake.x, y: retake.y, width: retake.width, height: retake.height },
+          label: { height: label.getBoundingClientRect().height, lineHeight: parseFloat(getComputedStyle(label).lineHeight) },
+          direction: getComputedStyle(nav).flexDirection,
+          overflow: document.documentElement.scrollWidth > innerWidth,
+        };
+      });
+    }
     // Footer controls keep their readable width instead of squeezing the label.
     for (const width of [768, 1440]) {
       await a.setViewportSize({ width, height: 900 });
-      const link = await a.locator('.result-quiz-nav .result-utility-link').boundingBox();
-      const retake = await a.locator('#retake-quiz').boundingBox();
-      const label = await a.locator('.result-quiz-nav .result-utility-label').evaluate(node => ({
-        height: node.getBoundingClientRect().height, lineHeight: parseFloat(getComputedStyle(node).lineHeight),
-      }));
+      const { link, retake, label, direction } = await footerLayout();
+      assert.equal(direction, 'row');
       assert.ok(label.height <= label.lineHeight + 1);
-      assert.ok(link.x + link.width + 19 <= retake.x);
+      assert.ok(link.x + link.width + 19 <= retake.x, `Desktop footer spacing: ${JSON.stringify({ link, retake })}`);
     }
     await a.locator('.lang-btn[data-lang="en"]').click();
     await a.setViewportSize({ width: 320, height: 720 });
-    assert.equal(await a.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    const mobileLink = await a.locator('.result-quiz-nav .result-utility-link').boundingBox();
-    const mobileRetake = await a.locator('#retake-quiz').boundingBox();
-    assert.ok(mobileLink.y + mobileLink.height + 13 <= mobileRetake.y);
+    const mobile = await footerLayout();
+    assert.equal(mobile.direction, 'column');
+    assert.equal(mobile.overflow, false);
+    assert.ok(mobile.link.y + mobile.link.height + 13 <= mobile.retake.y,
+      `Mobile footer spacing: ${JSON.stringify(mobile)}`);
     statsFail = true;
     await a.goto(base + '/index.html?page=result&academy=blue');
     await a.locator('#academyGlobalBookShelf button').waitFor({ state: 'visible' });
