@@ -17,8 +17,12 @@
         <h1 data-i18n-key="pageTitle"></h1>
 
         <figure class="fig">
+<<<<<<< HEAD
           <img src="img/index-1280.jpg" srcset="img/index-640.jpg 640w, img/index-1280.jpg 1280w, img/index.jpg 3105w"
                sizes="(max-width: 600px) calc(100vw - 48px), 1000px" alt="Creative trait quiz visual" data-i18n-key="indexHeroAlt" data-i18n-attr="alt"
+=======
+          <img src="img/index.jpg" alt="Creative trait quiz visual" data-i18n-key="indexHeroAlt" data-i18n-attr="alt"
+>>>>>>> origin/main
                width="3105" height="1545">
         </figure>
 
@@ -26,6 +30,7 @@
           <div class="index-welcome">
             <p class="index-greeting" data-i18n-key="indexGreeting"></p>
             <p class="index-intro" data-i18n-key="indexIntro"></p>
+<<<<<<< HEAD
           </div>
 
           <section class="index-procedure" aria-labelledby="index-procedure-title">
@@ -58,6 +63,40 @@
             <p class="index-good-luck" data-i18n-key="indexGoodLuck"></p>
             <a href="index.html?page=quiz" class="index_button" data-i18n-key="startQuizBtn" data-analytics-event="quiz_entry_clicked">開始測驗</a>
           </div>
+=======
+          </div>
+
+          <section class="index-procedure" aria-labelledby="index-procedure-title">
+            <div class="index-procedure-header">
+              <h2 id="index-procedure-title" data-i18n-key="indexProcedureTitle"></h2>
+              <p class="quiz-duration" data-i18n-key="quizDurationHint"></p>
+            </div>
+            <ol class="index-stages">
+              <li>
+                <span class="index-stage-number" aria-hidden="true">01</span>
+                <div>
+                  <h3 data-i18n-key="indexStage1Title"></h3>
+                  <p class="index-stage-count" data-i18n-key="indexStage1Count"></p>
+                  <p class="index-stage-description" data-i18n-key="indexStage1"></p>
+                </div>
+              </li>
+              <li>
+                <span class="index-stage-number" aria-hidden="true">02</span>
+                <div>
+                  <h3 data-i18n-key="indexStage2Title"></h3>
+                  <p class="index-stage-count" data-i18n-key="indexStage2Count"></p>
+                  <p class="index-stage-description" data-i18n-key="indexStage2"></p>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <div class="index-start">
+            <p class="index-outcome" data-i18n-key="indexAfterAnalysis"></p>
+            <p class="index-good-luck" data-i18n-key="indexGoodLuck"></p>
+            <a href="index.html?page=quiz" class="index_button" data-i18n-key="startQuizBtn">開始測驗</a>
+          </div>
+>>>>>>> origin/main
         </div>
 
       </div>
