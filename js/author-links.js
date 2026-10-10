@@ -9,12 +9,14 @@
     const worksHeader = el("div", { className: "result-section-header" });
     worksHeader.appendChild(el("h2", { id: worksTitleId }, t.resultWorksTitle));
     const personalWebsite = makeResultLink("https://tealize-write.github.io/", t.resultPersonalWebsite, "result-utility-link", options.bindLink);
+    personalWebsite.dataset.analyticsEvent = "personal_website_clicked";
     decorateResultUtilityLink(personalWebsite, "website");
     worksHeader.appendChild(personalWebsite);
     works.appendChild(worksHeader);
 
     const workCard = el("article", { className: "result-work-card" });
-    workCard.appendChild(el("img", { className: "result-work-cover", src: "img/cover.jpg", alt: t.resultWorkCoverAlt,
+    workCard.appendChild(el("img", { className: "result-work-cover", src: "img/cover-400.jpg",
+      srcset: "img/cover-400.jpg 400w, img/cover-800.jpg 800w, img/cover.jpg 1000w", sizes: "(max-width: 600px) 160px, 200px", alt: t.resultWorkCoverAlt,
       width: 1000, height: 1429, loading: "lazy" }));
     const workText = el("div", { className: "result-work-text" });
     workText.appendChild(el("p", { className: "result-work-subtitle" }, t.resultWorkSubtitle));
@@ -30,6 +32,8 @@
     ];
     platforms.forEach(([name, href]) => {
       const link = makeResultLink(href, name, "result-reading-link", options.bindLink);
+      link.dataset.analyticsEvent = "work_link_clicked";
+      link.dataset.analyticsPlatform = name.toLowerCase();
       link.setAttribute("aria-label", t.resultReadOn.replace("{platform}", name));
       readingLinks.appendChild(link);
     });
@@ -55,6 +59,8 @@
     socials.forEach(([id, name, href]) => {
       const link = makeResultLink(href, name, "result-social-link", options.bindLink);
       link.dataset.platform = id;
+      link.dataset.analyticsEvent = "social_link_clicked";
+      link.dataset.analyticsPlatform = id;
       link.setAttribute("aria-label", name);
       link.title = name;
       link.textContent = "";

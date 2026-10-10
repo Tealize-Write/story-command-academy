@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const context = vm.createContext({ window: {} });
+const context = vm.createContext({ window: {}, setTimeout, clearTimeout, AbortController });
 vm.runInContext(fs.readFileSync('js/academy-stats.js', 'utf8'), context);
 const { parse, load } = context.window.ACADEMY_STATS;
 const counts = { red: 4, green: 12, blue: 4, black: 11, white: 11 };
@@ -30,4 +30,29 @@ test('rejects HTTP failures before consuming their response body', async () => {
   context.fetch = async () => ({ ok: false, json: async () => { readBody = true; return { counts, total: 42 }; } });
   await assert.rejects(load('https://example.invalid/stats'));
   assert.equal(readBody, false);
+});
+
+test('accepts and validates distinct participants while supporting old GAS responses', () => {
+  const data = parse({ counts, total: 42, uniqueParticipants: 30, unidentifiedCompletions: 2 });
+  assert.equal(data.uniqueParticipants, 30);
+  assert.equal(data.unidentifiedCompletions, 2);
+  for (const uniqueParticipants of [-1, 43, '30', 1.2]) {
+    assert.throws(() => parse({ counts, total: 42, uniqueParticipants }));
+  }
+  assert.throws(() => parse({ counts, total: 42, uniqueParticipants: 30, unidentifiedCompletions: 13 }));
+  const t = { totalParticipants: '完成次數：', uniqueParticipants: '參與者：' };
+  assert.equal(context.window.ACADEMY_STATS.describe(data, t), '完成次數：42 · 參與者：30');
+  assert.equal(context.window.ACADEMY_STATS.describe(parse({ counts, total: 42 }), t), '完成次數：42');
+});
+
+test('statistics time out even if the response body never finishes', async () => {
+  const timers = new Map(); let id = 0;
+  const ctx = vm.createContext({ window: {}, AbortController,
+    setTimeout: (fn, ms) => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key),
+    fetch: async () => ({ ok: true, json: () => new Promise(() => {}) }) });
+  vm.runInContext(fs.readFileSync('js/academy-stats.js', 'utf8'), ctx);
+  const pending = ctx.window.ACADEMY_STATS.load('https://example.invalid');
+  const rejected = assert.rejects(pending, /timed out/);
+  [...timers.values()][0](); await rejected;
+  assert.equal(timers.size, 0);
 });

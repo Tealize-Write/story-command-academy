@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/style.css?v=20261009-language-switch" />
+    <link rel="stylesheet" href="css/style.css?v=20261011-result-actions" />
     <title>Word Fate Academy — Statistics</title>
   </head>
   <body>
@@ -46,6 +46,7 @@
         id="stats-error"
         style="display: none; text-align: center; color: #ff5c5c"
       ></p>
+      <button id="stats-retry" type="button" class="secondary-button" style="display:none;" data-i18n-key="statsRetry">重新讀取</button>
 
       <!-- 總人數 -->
       <p class="stats-meta" id="stats-total"></p>
@@ -79,26 +80,32 @@
           href="index.html?page=quiz"
           class="index_button"
           data-i18n-key="statsGoQuiz"
+          data-analytics-event="quiz_entry_clicked"
           >Go to Quiz</a
         >
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/i18n.js"></script>
-    <script src="js/translation.js?v=20261009-language-switch"></script>
+    <script src="js/analytics.js?v=20261010-project-fixes"></script>
+    <script src="js/i18n.js?v=20261010-project-fixes"></script>
+    <script src="js/translation.js?v=20261010-project-fixes"></script>
     <script src="js/academy-theme.js"></script>
-    <script src="js/academy-stats.js"></script>
+    <script src="js/academy-stats.js?v=20261010-project-fixes"></script>
     <script>
       // ── GAS 設定（使用共享 config） ───────────────────────────────────────
       const GAS_STATS_URL = GAS_URL;
 
       let donutChart = null;
       let barChart = null;
+      let statsRequest = 0;
       let statsMessageState = "none";
 
-      document.addEventListener("DOMContentLoaded", loadStats);
+      document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("stats-retry").onclick = () => statsMessageState === "chartFailed" ? location.reload() : loadStats();
+        void loadStats();
+      });
       document.addEventListener("langChanged", () => {
         // 有圖表時沿用既有流程重建，無圖表時重套目前訊息語系。
         if (donutChart || barChart) {
@@ -143,9 +150,10 @@
         const t = UI_TRANSLATIONS[window.currentLang || "zh-TW"];
 
         statsMessageState = type || "none";
+        document.getElementById("stats-retry").style.display = ["loadFailed", "chartFailed"].includes(statsMessageState) ? "" : "none";
 
         if (statsMessageState !== "none" && statsMessageState !== "loading") {
-          document.getElementById("stats-total").textContent = "";
+          if (statsMessageState !== "chartFailed") document.getElementById("stats-total").textContent = "";
           for (const id of ["donut-title", "donut-wrap", "bar-title", "bar-wrap"]) {
             document.getElementById(id).style.display = "none";
           }
@@ -170,6 +178,11 @@
           errorEl.textContent = t.statsLoadFailed;
           return;
         }
+        if (statsMessageState === "chartFailed") {
+          loadingEl.style.display = "none"; errorEl.style.display = "";
+          errorEl.textContent = t.statsChartFailed;
+          return;
+        }
 
         if (statsMessageState === "empty") {
           loadingEl.style.display = "none";
@@ -183,6 +196,7 @@
       }
 
       async function loadStats() {
+        const request = ++statsRequest;
         // GAS URL 未設定 → 顯示提示
         if (!GAS_STATS_URL || GAS_STATS_URL.startsWith("__")) {
           renderStatsMessage("gasMissing");
@@ -193,16 +207,22 @@
           renderStatsMessage("loading");
 
           const json = await window.ACADEMY_STATS.load(GAS_STATS_URL);
+          if (request !== statsRequest) return;
+          if (typeof window.Chart !== "function") {
+            document.getElementById("stats-total").textContent = window.ACADEMY_STATS.describe(json, UI_TRANSLATIONS[window.currentLang || "zh-TW"]);
+            renderStatsMessage("chartFailed"); return;
+          }
 
           // 預期格式：{ counts: { red:12, green:8, blue:5, black:3, white:7 }, total: 35 }
-          renderCharts(json.counts, json.total);
+          renderCharts(json.counts, json.total, json.uniqueParticipants);
           renderStatsMessage("none");
         } catch (e) {
+          if (request !== statsRequest) return;
           renderStatsMessage("loadFailed");
         }
       }
 
-      function renderCharts(counts, total) {
+      function renderCharts(counts, total, uniqueParticipants) {
         const names = getNames();
         const keys = getAcademyKeys();
         const colorMap = getAcademyColors();
@@ -217,7 +237,7 @@
         const t = UI_TRANSLATIONS[window.currentLang || "zh-TW"];
 
         document.getElementById("stats-total").textContent =
-          t.totalParticipants + (total || data.reduce((a, b) => a + b, 0));
+          window.ACADEMY_STATS.describe({ total, uniqueParticipants }, t);
 
         // ── 圓餅圖 ──────────────────────────────────────────────────────────
         document.getElementById("donut-title").style.display = "";

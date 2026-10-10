@@ -78,7 +78,12 @@ function applyLang(lang) {
 document.addEventListener("DOMContentLoaded", () => {
   _langBtns = document.querySelectorAll(".lang-btn");
   _langBtns.forEach((btn) =>
-    btn.addEventListener("click", () => applyLang(btn.dataset.lang)),
+    btn.addEventListener("click", () => {
+      if (btn.dataset.lang !== window.currentLang) {
+        window.ANALYTICS?.track("language_changed", { language: btn.dataset.lang });
+      }
+      applyLang(btn.dataset.lang);
+    }),
   );
   applyLang(window.currentLang);
 });

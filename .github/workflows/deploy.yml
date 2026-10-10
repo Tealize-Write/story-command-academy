@@ -24,20 +24,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Generate config.js from secrets
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - name: Build website with validated GAS configuration
         env:
           GAS_URL: ${{ secrets.GAS_URL }}
-          TOKEN: ${{ secrets.TOKEN }}
-        run: |
-          cp js/config.example.js js/config.js
-          sed -i "s|__GAS_URL__|$GAS_URL|g" js/config.js
-          sed -i "s|__TOKEN__|$TOKEN|g"     js/config.js
+        run: npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: .tmp/site
 
       - name: Deploy to GitHub Pages
         id: deployment
