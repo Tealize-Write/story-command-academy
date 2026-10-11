@@ -231,6 +231,7 @@ test('GAS accepts older payloads and uses server time for ambiguous or invalid t
 test('GAS stores literal external text, score versions and foreground duration while rejecting malformed events', { skip: !available }, () => {
   const state = setup();
   assert.equal(state.post({ action: 'quiz_completed', keyword: 'blue', eventId: 'event-1', source: '=1+1',
+    clientId: 'score-client', attemptId: 'score-attempt', page: 'quiz',
     timeSpent: 86400, activeTimeSpent: 65, red: 6, green: 8, blue: 28, black: 9, white: 7, scoringVersion: 'creative-traits-2' }).status, 'ok');
   assert.equal(state.rows[1][4], "'=1+1");
   assert.deepEqual([...state.rows[1]].slice(17), [65, 6, 8, 28, 9, 7, 'creative-traits-2']);
@@ -262,6 +263,99 @@ function marketingRows(events) {
     'eventId', 'page', 'platform', 'target', 'language', 'attemptId'];
   return [headers, ...events.map(event => headers.map(key => event[key] ?? ''))];
 }
+
+test('new marketing period separates history and format exceptions while retaining entry-only Google visitors', { skip: !available }, () => {
+  const state = setup();
+  const events = [
+    { timestamp: '2026-10-10T15:59:48Z', clientId: 'historical', action: 'quiz_completed', keyword: 'white' },
+    { timestamp: '2026-10-10T19:07:30Z', clientId: 'a', action: 'quiz_entry_clicked', source: 'google', eventId: 'entry', page: 'index' },
+    { timestamp: '2026-10-10T19:07:52Z', clientId: 'a', action: 'quiz_completed', source: 'direct', keyword: 'black' },
+    { timestamp: '2026-10-11T01:00:00Z', clientId: 'b', action: 'quiz_started', source: 'threads', eventId: 'start', attemptId: 'one' },
+    { timestamp: '2026-10-11T01:05:00Z', clientId: 'b', action: 'quiz_completed', source: 'threads', eventId: 'done', attemptId: 'one', page: 'quiz', keyword: 'green' },
+    { timestamp: '2026-10-11T01:06:00Z', clientId: 'b', action: 'social_link_clicked', source: 'threads', eventId: 'click', attemptId: 'one', platform: 'instagram' },
+    { timestamp: '2026-10-11T01:07:00Z', clientId: 'b', action: 'work_link_clicked', source: 'threads', eventId: 'other-attempt', attemptId: 'two', platform: 'cxc' },
+    { timestamp: 'unknown', clientId: 'c', action: 'quiz_completed', keyword: 'red', eventId: 'unknown' },
+  ];
+  const rows = marketingRows(events);
+  rows[0].push('page'); rows.slice(1).forEach((row, i) => row.push(events[i].page || ''));
+  const report = JSON.parse(JSON.stringify(state.context.buildMarketingReport_(rows, { start: new Date('2026-10-10T19:07:30Z') })));
+  assert.deepEqual(report.entries, [['google', 1]]);
+  assert.deepEqual(report.sources.find(row => row[0] === 'google'), ['google', 0, 0, 0, 0, 0, 0, '', '']);
+  assert.deepEqual(report.sources.find(row => row[0] === 'threads'), ['threads', 1, 1, 0, 1, 1, 1, 0, 1]);
+  assert.equal(report.historical, 1);
+  assert.equal(report.exceptions, 2);
+  assert.equal(report.exceptionCounts.completions, 1);
+  assert.equal(report.exceptionCounts.unknownTime, 1);
+  assert.equal(report.sources.some(row => row[0] === 'direct'), false, 'incomplete completion is not guessed into the modern cohort');
+});
+
+test('historical index mismatch fails public statistics closed but preserves event ingestion until editor rebuild', { skip: !available }, () => {
+  const state = setup();
+  state.post({ action: 'quiz_completed', keyword: 'blue', clientId: 'original', eventId: 'old-complete' });
+  assert.equal(state.stats().total, 1);
+  state.rows[1][1] = 'replaced'; state.rows[1][3] = '測驗與學院的設計';
+  assert.throws(() => state.context.refreshAcademyStatistics(), /rebuildAcademyStatistics/);
+  assert.ok(state.stats().error);
+  const ack = state.post({ action: 'quiz_completed', keyword: 'green', clientId: 'next', eventId: 'next-complete' });
+  assert.equal(ack.status, 'ok');
+  assert.equal(ack.statisticsPending, true);
+  assert.equal(ack.statistics, undefined);
+  const before = state.rows.map(row => row.slice());
+  state.context.rebuildAcademyStatistics();
+  assert.deepEqual(state.rows, before);
+  assert.equal(state.stats().total, 1);
+  assert.equal(state.stats().counts.green, 1);
+});
+
+test('editor audit detects missing historical clients and orphaned completion references with resumable progress', { skip: !available }, () => {
+  const state = setup();
+  state.post({ action: 'quiz_completed', keyword: 'blue', clientId: 'original', eventId: 'orphan' });
+  const summaryKey = [...state.properties.keys()][0];
+  const summary = JSON.parse(state.properties.get(summaryKey));
+  delete summary.anchor; state.properties.set(summaryKey, JSON.stringify(summary)); // Existing deployment checkpoint.
+  state.rows[1][1] = 'restored-historical-player'; state.rows[1][10] = '';
+  let audit = state.context.auditAcademyStatistics();
+  assert.equal(audit.ready, false);
+  assert.equal(audit.missingReferences, 1);
+  audit = state.context.auditAcademyStatistics();
+  assert.equal(audit.ready, true);
+  assert.equal(audit.mismatchedReferences, 2);
+  assert.equal(audit.requiresRebuild, true);
+  state.context.rebuildAcademyStatistics();
+  do { audit = state.context.auditAcademyStatistics(); } while (!audit.ready);
+  assert.equal(audit.missingReferences, 0);
+  assert.equal(audit.mismatchedReferences, 0);
+  assert.equal(audit.requiresRebuild, false);
+});
+
+test('modern completion validation rejects missing identity while accepting the known legacy completion format', { skip: !available }, () => {
+  const state = setup();
+  assert.equal(state.post({ action: 'quiz_completed', keyword: 'black', scoringVersion: 'creative-traits-2' }).code, 'invalid_event');
+  assert.equal(state.post({ action: 'quiz_completed', keyword: 'black' }).status, 'ok');
+});
+
+test('editor audit also verifies persisted counters, survives concurrent append and restarts after rebuild', { skip: !available }, () => {
+  const state = setup();
+  state.post({ action: 'quiz_completed', keyword: 'blue', clientId: 'a', eventId: 'done' });
+  let audit = state.context.auditAcademyStatistics();
+  state.post({ action: 'quiz_completed', keyword: 'green', clientId: 'b', eventId: 'later' });
+  do { audit = state.context.auditAcademyStatistics(); } while (!audit.ready);
+  assert.equal(audit.summaryMismatch, false, 'snapshot counters exclude the concurrent append');
+  assert.equal(audit.requiresRebuild, false);
+  const key = [...state.properties.keys()].find(key => !key.endsWith(':audit'));
+  const summary = JSON.parse(state.properties.get(key));
+  summary.counts.blue++; summary.total++;
+  state.properties.set(key, JSON.stringify(summary));
+  do { audit = state.context.auditAcademyStatistics(); } while (!audit.ready);
+  assert.equal(audit.summaryMismatch, true);
+  assert.equal(audit.requiresRebuild, true);
+  assert.ok(state.stats().error);
+  assert.equal(state.context.auditAcademyStatistics().ready, false);
+  state.context.rebuildAcademyStatistics();
+  do { audit = state.context.auditAcademyStatistics(); } while (!audit.ready);
+  assert.equal(audit.summaryMismatch, false);
+  assert.equal(state.stats().total, 2);
+});
 
 test('marketing report counts unique completion cohorts separately from repeated and unrelated clicks', { skip: !available }, () => {
   const state = setup();
@@ -321,7 +415,7 @@ test('marketing report setup preserves raw columns, escapes formulas and install
   assert.equal(state.reportRows[11][2], "'=2+2");
   state.rows.length = 1;
   state.context.refreshMarketingReport();
-  assert.equal(state.reportRows.length, 10, 'old report rows are removed on refresh');
+  assert.equal(state.reportRows.length, 17, 'old report rows are removed while the period and exception summary remains');
 });
 
 test('regular GAS events and report refreshes do not force technical columns to hide again', { skip: !available }, () => {
@@ -364,14 +458,16 @@ test('100,000 historical completions initialize in bounded batches and GET never
   while (!progress.ready) progress = state.context.refreshAcademyStatistics();
   assert.deepEqual(state.stats(), { counts: { red: 20000, green: 20000, blue: 20000, black: 20000, white: 20000 },
     total: 100000, uniqueParticipants: 100000, unidentifiedCompletions: 0 });
-  assert.equal(state.getReads(), 21);
+  assert.equal(state.readRanges.filter(range => range.column === 2 && range.width === 10 && (range.height > 3 || range.row > 4)).length, 21,
+    'only initialization batches scan history; maintenance checks inspect at most three leading rows');
   assert.deepEqual(state.readRanges.find(range => range.column === 2),
     { row: 2, column: 2, height: 5000, width: 10, locked: true });
   assert.ok(state.readRanges.filter(range => range.column === 2).every(range => range.height <= 5000));
   const opens = state.getOpens();
+  const reads = state.getReads();
   state.cache.clear(); // Verify a cache miss also never opens the spreadsheet.
   state.stats();
-  assert.equal(state.getReads(), 21, 'cache misses do not rescan historical rows');
+  assert.equal(state.getReads(), reads, 'cache misses do not rescan historical rows');
   assert.equal(state.getOpens(), opens);
   assert.equal(state.properties.size, 1, 'only a fixed summary is stored in Properties');
   assert.ok([...state.properties.values()][0].length < 1000);
@@ -380,12 +476,14 @@ test('100,000 historical completions initialize in bounded batches and GET never
 
 test('marketing sorting releases the ingestion lock and freezes the report boundary', { skip: !available }, () => {
   const state = setup();
-  state.post({ action: 'quiz_completed', keyword: 'blue', clientId: 'a', eventId: 'complete-a' });
+  state.post({ action: 'quiz_completed', keyword: 'blue', clientId: 'a', eventId: 'complete-a',
+    timestamp: '2026-10-11T01:00:00Z', page: 'quiz', attemptId: 'a' });
   const build = state.context.buildMarketingReport_;
-  state.context.buildMarketingReport_ = values => {
-    assert.equal(state.post({ action: 'quiz_completed', keyword: 'red', clientId: 'b', eventId: 'complete-b' }).status, 'ok',
+  state.context.buildMarketingReport_ = (values, options) => {
+    assert.equal(state.post({ action: 'quiz_completed', keyword: 'red', clientId: 'b', eventId: 'complete-b',
+      timestamp: '2026-10-11T02:00:00Z', page: 'quiz', attemptId: 'b' }).status, 'ok',
       'a player event can acquire the write lock while the report computes');
-    return build(values);
+    return build(values, options);
   };
   state.context.refreshMarketingReport();
   assert.equal(state.reportRows[0][6], 1, 'the snapshot excludes the concurrent append');
@@ -468,7 +566,7 @@ test('explicit rebuild corrects edited history without deleting logs or creating
   state.post({ action: 'quiz_completed', keyword: 'blue', clientId: 'b', eventId: 'two' });
   assert.equal(state.stats().total, 2);
   state.rows.splice(1, 1); // Owner deletes historical data; append-only invariant is broken.
-  assert.throws(() => state.context.refreshAcademyStatistics(), /truncated/);
+  assert.throws(() => state.context.refreshAcademyStatistics(), /rebuildAcademyStatistics/);
   state.rows[1][2] = 'green';
   const log = state.rows.map(row => row.slice());
   state.context.rebuildAcademyStatistics();

@@ -46,6 +46,7 @@
   function validDraft(record, questions) {
     return record?.version === VERSION && typeof record.attemptId === "string" && record.attemptId.length > 0 &&
       Number.isFinite(record.startedAt) && record.startedAt > 0 && typeof record.source === "string" &&
+      (record.referrer === undefined || (typeof record.referrer === "string" && record.referrer.length <= 2048)) &&
       Number.isInteger(record.currentIndex) && record.currentIndex >= 0 && record.currentIndex <= questions.length &&
       !!scoreAnswers(record.answers, questions, true) && record.currentIndex <= record.answers.length &&
       (record.activeMilliseconds === undefined || (Number.isFinite(record.activeMilliseconds) && record.activeMilliseconds >= 0)) &&

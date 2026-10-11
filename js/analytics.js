@@ -3,6 +3,8 @@
   const QUEUE_KEY = "academyAnalyticsQueue";
   const SOURCE_KEY = "academyAnalyticsSource";
   const REFERRER_KEY = "academyAnalyticsEntryReferrer";
+  const VISIT_KEY = "academyAnalyticsVisit";
+  const CONTEXT_KEY = "academyAnalyticsAttemptContext";
   const MAX_EVENTS = 200;
   const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
   let memoryQueue = [];
@@ -98,34 +100,56 @@
     try {
       savedSource = sessionStorage.getItem(SOURCE_KEY) || "";
       savedReferrer = sessionStorage.getItem(REFERRER_KEY) || "";
+      const visit = JSON.parse(sessionStorage.getItem(VISIT_KEY) || "null");
+      if (typeof visit?.source === "string") savedSource = visit.source;
+      if (typeof visit?.referrer === "string") savedReferrer = visit.referrer;
+      if (!explicit && (!referral || referral.internal)) {
+        const saved = JSON.parse(sessionStorage.getItem(CONTEXT_KEY) || "null");
+        if (typeof saved?.source === "string") context = saved;
+      }
     } catch {}
     rememberSource(explicit || (referral && !referral.internal ? referral.source : "") || savedSource || "direct");
     // Internal navigation must not replace the original entry with our own quiz URL.
     entryReferrer = referral && !referral.internal ? referral.referrer :
       (explicit && !referral?.internal ? "" : savedReferrer);
     try { sessionStorage.setItem(REFERRER_KEY, entryReferrer); } catch {}
+    try { sessionStorage.setItem(VISIT_KEY, JSON.stringify(getEntryAttribution())); } catch {}
   }
 
   function trafficSource() {
-    return rememberSource(explicitSource() || context.source || entrySource || "direct");
+    return context.source || entrySource || "direct";
+  }
+
+  function getEntryAttribution() {
+    return { source: entrySource || "direct", referrer: entryReferrer };
   }
 
   function setContext(details) {
+    // Older drafts have no referrer. Never pair their source with a new visit's URL.
+    if (typeof details.source === "string" && details.referrer === undefined && details.source !== trafficSource()) {
+      context.referrer = details.source === entrySource ? entryReferrer : "";
+    }
     Object.entries(details).forEach(([key, value]) => {
       if (value !== undefined && value !== null) context[key] = value;
     });
+    try {
+      if (context.source) sessionStorage.setItem(SOURCE_KEY, context.source);
+      if (context.referrer !== undefined) sessionStorage.setItem(REFERRER_KEY, context.referrer);
+      sessionStorage.setItem(CONTEXT_KEY, JSON.stringify(context));
+    } catch {}
   }
 
   function track(action, details = {}) {
     if (!endpoint()) return false;
     try {
+      const entry = action === "quiz_entry_clicked";
       const payload = {
         timestamp: new Date().toISOString(),
         clientId: getClientId(),
         keyword: context.keyword || "",
         action,
-        source: trafficSource(),
-        referrer: entryReferrer,
+        source: entry ? entrySource : trafficSource(),
+        referrer: entry ? entryReferrer : (context.referrer ?? entryReferrer),
         device: getDeviceType(),
         ...getLocationPayload(),
         timeSpent: 0,
@@ -137,6 +161,13 @@
         ...details,
         eventId: details.eventId || window.crypto?.randomUUID?.() || `event_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       };
+      if (entry) { payload.attemptId = ""; payload.keyword = ""; }
+      if (["quiz_started", "quiz_restarted", "quiz_resumed", "quiz_completed"].includes(action) &&
+          (!payload.attemptId || !payload.clientId || !payload.page || !payload.eventId)) {
+        // Legacy callers without an attempt are kept compatible; current quiz callers
+        // supply a scoringVersion marker so an incomplete new completion never sends.
+        if (details.scoringVersion || context.attemptId !== undefined) return false;
+      }
       if (settledIds.has(payload.eventId)) return true;
       const entries = readQueue();
       if (!entries.some(item => item.payload.eventId === payload.eventId)) {
@@ -247,13 +278,23 @@
     if (event.type === "auxclick" && event.button !== 1) return;
     const element = event.target.closest?.("[data-analytics-event]");
     if (!element || element.disabled) return;
+    if (element.dataset.analyticsEvent === "quiz_entry_clicked" && element.href) {
+      const url = new URL(element.href, location.origin);
+      let stored = false;
+      try { sessionStorage.setItem(VISIT_KEY, JSON.stringify(getEntryAttribution())); stored = true; } catch {}
+      const newTab = event.button === 1 || event.ctrlKey || event.metaKey || element.target === "_blank";
+      if ((!stored || newTab) && url.origin === location.origin && entrySource && entrySource.length <= 256) {
+        url.searchParams.set("source", entrySource);
+        element.href = url.href;
+      }
+    }
     track(element.dataset.analyticsEvent, {
       platform: element.dataset.analyticsPlatform || "",
       target: element.href || "",
     });
   }
 
-  window.ANALYTICS = { track, flush, setContext, getSource: trafficSource, getCompletionStatistics };
+  window.ANALYTICS = { track, flush, setContext, getSource: trafficSource, getEntryAttribution, getCompletionStatistics };
   document.addEventListener("click", trackClick, true);
   document.addEventListener("auxclick", trackClick, true);
   document.addEventListener("visibilitychange", () => {
