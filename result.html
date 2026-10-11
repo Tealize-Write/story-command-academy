@@ -6,13 +6,9 @@
     <title>Redirecting...</title>
   </head>
   <body>
+    <script src="js/analytics.js?v=20261011-legacy-entry"></script>
     <script>
-      const params = new URLSearchParams(window.location.search);
-      const academy = params.get("academy");
-      const target = academy
-        ? `index.html?page=result&academy=${encodeURIComponent(academy)}`
-        : "index.html?page=result";
-      window.location.replace(target);
+      window.ANALYTICS.redirectLegacyPage("result");
     </script>
   </body>
 </html>

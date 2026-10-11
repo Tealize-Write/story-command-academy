@@ -19,7 +19,7 @@ test('website artifact includes pages and runtime assets while excluding develop
   const output = fs.mkdtempSync(path.join(os.tmpdir(), 'academy-site-'));
   try {
     build(url, output);
-    for (const name of ['index.html', 'about.html', 'js/analytics.js', 'js/config.js', 'img/cover.jpg']) assert.ok(fs.existsSync(path.join(output, name)));
+    for (const name of ['index.html', 'about.html', 'author-quiz.html', 'result.html', 'js/analytics.js', 'js/config.js', 'img/cover.jpg']) assert.ok(fs.existsSync(path.join(output, name)));
     for (const name of ['tests', 'docs', 'artifacts', 'GAS', 'README.md', '.git', 'js/config.example.js']) assert.ok(!fs.existsSync(path.join(output, name)));
   } finally {
     assert.ok(fs.realpathSync(output).startsWith(fs.realpathSync(os.tmpdir()) + path.sep + 'academy-site-'));
