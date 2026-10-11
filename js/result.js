@@ -23,7 +23,9 @@ const DEFAULT_LANG = "zh-TW";
 
 function getCurrentLang() {
   let lang = window.currentLang;
-  try { lang ||= localStorage.getItem("lang"); } catch {}
+  try {
+    lang ||= localStorage.getItem("lang");
+  } catch {}
   return window.UI_TRANSLATIONS?.[lang] ? lang : DEFAULT_LANG;
 }
 
@@ -88,7 +90,7 @@ const RESULT_CONTENT = {
         ],
       },
     },
-  
+
     green: {
       main: [
         "綠躍學生最注重作品的創意和新奇感，喜歡挑戰常理，以獨特和怪奇的特質吸引讀者的注意力。創意是你最大的武器。",
@@ -140,7 +142,7 @@ const RESULT_CONTENT = {
         ],
       },
     },
-  
+
     blue: {
       main: [
         "你是一個極度注重邏輯和合理性的人，寫作時會花費大量心力查詢資料、考究背景、設計龐大而複雜的世界觀，以確保你的作品能夠呈現出完美的內在結構和脈絡。",
@@ -188,7 +190,7 @@ const RESULT_CONTENT = {
         ],
       },
     },
-  
+
     black: {
       main: [
         "你們是真正玩文字的人，很認真的雕琢文字，比起一般以小說形式為載體的學院，你們有更多詩、詞、散文的變化，你們也是最懂文學之美的人。",
@@ -239,7 +241,7 @@ const RESULT_CONTENT = {
         ],
       },
     },
-  
+
     white: {
       main: [
         "你是一位注重角色心理描寫和互動的人，對人性的觀察和刻劃有著敏銳的洞察力。",
@@ -288,7 +290,6 @@ const RESULT_CONTENT = {
         ],
       },
     },
-  
   },
   en: {
     red: {
@@ -475,13 +476,15 @@ const RESULT_COPY = {
     secondaryTitle: "Secondary preference: {name}",
     hypotheticalTitle: "If you also lean toward {name}",
     exploreTitle: "Explore other combinations",
-    exploreDesc: "Discover the styles that emerge when different creative preferences meet.",
+    exploreDesc:
+      "Discover the styles that emerge when different creative preferences meet.",
     scoreUnit: "pts",
     introductionHeading: "Academy Introduction",
     introductionLabel: "Academy you are exploring:",
     missingAcademyParam:
       "This academy could not be found. Please retake the quiz.",
-    globalStatsMissingSource: "Statistics are temporarily unavailable. Please try again later.",
+    globalStatsMissingSource:
+      "Statistics are temporarily unavailable. Please try again later.",
     globalStatsLoadFailed:
       "Failed to load community stats. Please try again later.",
     globalStatsNoData: "No community statistics available yet.",
@@ -507,7 +510,7 @@ const RESULT_SUMMARY = {
   "zh-TW": {
     primary: {
       red: "你留意市場的風向與讀者喜好，思考作品如何抓住人心",
-      green: "你不喜歡被慣例框住，更在意故事是否新奇、有趣",
+      green: "你不想受限常理框架，更在意故事是否新奇、有趣",
       blue: "你細心考究設定與細節，讓讀者沉浸在可信的世界裡",
       black: "你相信文字是故事的血肉，讓字句承載情感與思考",
       white: "你相信人物是故事的推動力，喜歡細膩描繪情感與關係",
@@ -523,10 +526,13 @@ const RESULT_SUMMARY = {
   en: {
     primary: {
       red: "You watch market trends and readers' tastes, thinking about how a story can capture their attention",
-      green: "You dislike being boxed in by convention and value stories that feel fresh and fun",
+      green:
+        "You dislike being boxed in by convention and value stories that feel fresh and fun",
       blue: "You research settings and details carefully so readers can immerse themselves in a believable world",
-      black: "You see language as the lifeblood of a story, carrying emotion and thought",
-      white: "You see characters as the driving force of a story and enjoy exploring their emotions and relationships",
+      black:
+        "You see language as the lifeblood of a story, carrying emotion and thought",
+      white:
+        "You see characters as the driving force of a story and enjoy exploring their emotions and relationships",
     },
     secondary: {
       red: "consider readers' expectations and what draws them in",
@@ -540,20 +546,32 @@ const RESULT_SUMMARY = {
 
 function getResultSummary(key, otherKeys, lang) {
   const copy = RESULT_SUMMARY[lang] || RESULT_SUMMARY[DEFAULT_LANG];
-  const traits = otherKeys.map(other => copy.secondary[other]);
+  const traits = otherKeys.map((other) => copy.secondary[other]);
   if (lang === "en") {
-    const others = new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(traits);
+    const others = new Intl.ListFormat("en", {
+      style: "long",
+      type: "conjunction",
+    }).format(traits);
     return copy.primary[key] + (others ? "; you also " + others : "") + ".";
   }
-  return copy.primary[key] + (traits.length ? "，也" + traits.join("、") : "") + "。";
+  return (
+    copy.primary[key] + (traits.length ? "，也" + traits.join("、") : "") + "。"
+  );
 }
 
 // ── 入口 ────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", initializeResultPage);
-document.addEventListener("analyticsAcknowledged", event => {
-  if (event.detail?.action !== "quiz_completed" || !document.getElementById("result-wrap")) return;
+document.addEventListener("analyticsAcknowledged", (event) => {
+  if (
+    event.detail?.action !== "quiz_completed" ||
+    !document.getElementById("result-wrap")
+  )
+    return;
   const key = getAcademyParam();
-  if (key) { globalCountsCache = null; void loadGlobalAcademyStats(key); }
+  if (key) {
+    globalCountsCache = null;
+    void loadGlobalAcademyStats(key);
+  }
 });
 function initializeResultPage() {
   const wrap = document.getElementById("result-wrap");
@@ -569,7 +587,11 @@ function initializeResultPage() {
         getResultCopy().missingAcademyParam,
       ),
     );
-    const back = el("a", { href: "index.html", className: "index_button" }, getCurrentLang() === "en" ? "Back to quiz" : "回到測驗");
+    const back = el(
+      "a",
+      { href: "index.html", className: "index_button" },
+      getCurrentLang() === "en" ? "Back to quiz" : "回到測驗",
+    );
     wrap.appendChild(back);
     if (!wrap.dataset.ready) {
       wrap.dataset.ready = "true";
@@ -578,12 +600,19 @@ function initializeResultPage() {
     return;
   }
 
-  ACADEMY_ORDER.forEach(academy => document.body.classList.remove("theme-" + academy));
+  ACADEMY_ORDER.forEach((academy) =>
+    document.body.classList.remove("theme-" + academy),
+  );
   const analyticsRecord = readLatestResult(key);
   const entry = window.ANALYTICS?.getEntryAttribution();
-  window.ANALYTICS?.setContext({ keyword: key, attemptId: analyticsRecord?.completionId || "",
+  window.ANALYTICS?.setContext({
+    keyword: key,
+    attemptId: analyticsRecord?.completionId || "",
     source: analyticsRecord?.source || entry?.source || "direct",
-    referrer: analyticsRecord ? analyticsRecord.referrer || "" : entry?.referrer || "" });
+    referrer: analyticsRecord
+      ? analyticsRecord.referrer || ""
+      : entry?.referrer || "",
+  });
   renderContent(key);
   if (!wrap.dataset.ready) {
     wrap.dataset.ready = "true";
@@ -611,7 +640,9 @@ function renderContent(key, options = {}) {
     t.academyNames || getUiTranslation(DEFAULT_LANG).academyNames || {};
   const academyName = academyNames[key] || key;
   const resultRecord = readLatestResult(key);
-  const ranking = resultRecord ? window.QUIZ_RESULT_MODEL.classify(resultRecord.scores, key) : null;
+  const ranking = resultRecord
+    ? window.QUIZ_RESULT_MODEL.classify(resultRecord.scores, key)
+    : null;
   const wrap = document.getElementById("result-wrap");
   if (!wrap || !data) return;
   const exploreOpen = wrap.querySelector(".result-explore")?.open || false;
@@ -621,11 +652,17 @@ function renderContent(key, options = {}) {
 
   const frag = document.createDocumentFragment();
 
-  const heading = el("p", { className: "result-eyebrow" }, resultRecord ? copy.academyTestHeading : copy.introductionHeading);
+  const heading = el(
+    "p",
+    { className: "result-eyebrow" },
+    resultRecord ? copy.academyTestHeading : copy.introductionHeading,
+  );
   heading.setAttribute("data-reveal", "act1");
   frag.appendChild(heading);
 
-  const content = el("div", { className: "res_content result-reveal-stage result-letter" });
+  const content = el("div", {
+    className: "res_content result-reveal-stage result-letter",
+  });
 
   const resultTitle = el(
     "h2",
@@ -649,9 +686,12 @@ function renderContent(key, options = {}) {
     className: "result-winner-label",
     id: "result-winner-label",
   });
-  winnerLabel.textContent = resultRecord ? t.resultTopLabel : copy.introductionLabel;
+  winnerLabel.textContent = resultRecord
+    ? t.resultTopLabel
+    : copy.introductionLabel;
   const winnerName = el("span", {
-    className: "result-winner-name" + (/[A-Za-z]/.test(academyName) ? " is-latin" : ""),
+    className:
+      "result-winner-name" + (/[A-Za-z]/.test(academyName) ? " is-latin" : ""),
     id: "result-winner-name",
   });
   winnerBox.appendChild(winnerLabel);
@@ -660,16 +700,37 @@ function renderContent(key, options = {}) {
 
   if (resultRecord) {
     const otherKeys = ranking.tied.length ? ranking.tied : ranking.secondary;
-    if (otherKeys.length) winnerBox.appendChild(el("p", { className: "result-secondary result-secondary-label" },
-      (ranking.tied.length ? t.resultTiedLabel : t.resultSecondaryLabel) +
-      otherKeys.map(other => academyNames[other]).join(lang === "en" ? ", " : "、")));
-    winnerBox.appendChild(el("p", { className: "result-preference" }, getResultSummary(key, otherKeys, lang)));
+    if (otherKeys.length)
+      winnerBox.appendChild(
+        el(
+          "p",
+          { className: "result-secondary result-secondary-label" },
+          (ranking.tied.length ? t.resultTiedLabel : t.resultSecondaryLabel) +
+            otherKeys
+              .map((other) => academyNames[other])
+              .join(lang === "en" ? ", " : "、"),
+        ),
+      );
+    winnerBox.appendChild(
+      el(
+        "p",
+        { className: "result-preference" },
+        getResultSummary(key, otherKeys, lang),
+      ),
+    );
   }
-  if (resultRecord?.memoryOnly) content.appendChild(el("p", { className: "save-status", role: "status" }, t.resultMemoryOnly));
+  if (resultRecord?.memoryOnly)
+    content.appendChild(
+      el("p", { className: "save-status", role: "status" }, t.resultMemoryOnly),
+    );
 
   const scoreWrap = el("div", { className: "score-chart-container" });
   scoreWrap.setAttribute("data-reveal", "act2");
-  const scoreTitle = el("h3", {}, resultRecord ? copy.personalShelfTitle : t.scoreChartTitle);
+  const scoreTitle = el(
+    "h3",
+    {},
+    resultRecord ? copy.personalShelfTitle : t.scoreChartTitle,
+  );
   const shelf = el("div", {
     id: "academyBookShelf",
     className: "academy-bookshelf-container",
@@ -691,25 +752,40 @@ function renderContent(key, options = {}) {
     makeBlock(formatText(copy.pureViewTitle, academyName), data.pureView),
   );
 
-  const actualOthers = ranking ? (ranking.tied.length ? ranking.tied : ranking.secondary) : [];
+  const actualOthers = ranking
+    ? ranking.tied.length
+      ? ranking.tied
+      : ranking.secondary
+    : [];
   actualOthers.forEach((other) => {
     const hybridName = academyNames[other] || other;
     fullDetails.appendChild(
       makeBlock(
-        formatText(ranking.tied.length ? copy.tiedTitle : copy.secondaryTitle, hybridName),
+        formatText(
+          ranking.tied.length ? copy.tiedTitle : copy.secondaryTitle,
+          hybridName,
+        ),
         data.hybrids[other] || [],
       ),
     );
   });
   reportWrap.appendChild(fullDetails);
-  const hypothetical = ACADEMY_ORDER.filter(other => other !== key && !actualOthers.includes(other));
+  const hypothetical = ACADEMY_ORDER.filter(
+    (other) => other !== key && !actualOthers.includes(other),
+  );
   if (hypothetical.length) {
     const explore = el("details", { className: "result-explore" });
     explore.open = exploreOpen;
     explore.appendChild(el("summary", {}, copy.exploreTitle));
     explore.appendChild(el("p", {}, copy.exploreDesc));
-    hypothetical.forEach(other => explore.appendChild(makeBlock(
-      formatText(copy.hypotheticalTitle, academyNames[other] || other), data.hybrids[other] || [])));
+    hypothetical.forEach((other) =>
+      explore.appendChild(
+        makeBlock(
+          formatText(copy.hypotheticalTitle, academyNames[other] || other),
+          data.hybrids[other] || [],
+        ),
+      ),
+    );
     reportWrap.appendChild(explore);
   }
 
@@ -740,7 +816,12 @@ function renderContent(key, options = {}) {
 
   updateWinnerName(key);
   if (globalCountsCache) {
-    renderGlobalAcademyStats(globalCountsCache, key, globalTotalCache, globalUniqueCache);
+    renderGlobalAcademyStats(
+      globalCountsCache,
+      key,
+      globalTotalCache,
+      globalUniqueCache,
+    );
   }
 
   if (options.instant) {
@@ -780,10 +861,14 @@ function startRevealSequence(key, content, skipBtn) {
     skipBtn?.classList.add("is-hidden");
   };
 
-  skipBtn?.addEventListener("click", () => {
-    window.ANALYTICS?.track("result_reveal_skipped");
-    revealAll();
-  }, { once: true });
+  skipBtn?.addEventListener(
+    "click",
+    () => {
+      window.ANALYTICS?.track("result_reveal_skipped");
+      revealAll();
+    },
+    { once: true },
+  );
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     revealAll();
@@ -816,13 +901,23 @@ function makeResultConnections(t) {
 
   const quizNav = el("nav", { className: "result-quiz-nav" });
   quizNav.setAttribute("aria-label", t.resultQuizActionsLabel);
-  const aboutLink = el("a", { className: "result-utility-link", href: "about.html" }, t.aboutLinkText);
+  const aboutLink = el(
+    "a",
+    { className: "result-utility-link", href: "about.html" },
+    t.aboutLinkText,
+  );
   window.AUTHOR_LINKS.decorateLink(aboutLink, "book");
   aboutLink.dataset.analyticsEvent = "about_opened";
   quizNav.appendChild(aboutLink);
-  const retake = el("button", { id: "retake-quiz", className: "res_btn result-retake", type: "button" }, t.retakeText);
+  const retake = el(
+    "button",
+    { id: "retake-quiz", className: "res_btn result-retake", type: "button" },
+    t.retakeText,
+  );
   retake.dataset.analyticsEvent = "quiz_retaken";
-  retake.onclick = () => { window.location.href = "index.html?page=quiz&restart=1"; };
+  retake.onclick = () => {
+    window.location.href = "index.html?page=quiz&restart=1";
+  };
   quizNav.appendChild(retake);
   section.appendChild(quizNav);
   return section;
@@ -839,9 +934,16 @@ function makeBlock(title, paragraphs) {
 
 function readLatestResult(primary) {
   const model = window.QUIZ_RESULT_MODEL;
-  const records = [window.currentQuizResult, model.read(model.storage(), "latestAcademyScores"),
-    model.read(model.storage("localStorage"), "latestAcademyScores")];
-  return records.find(record => model.validResult(record, primary, window.QUIZ_QUESTIONS[DEFAULT_LANG])) || null;
+  const records = [
+    window.currentQuizResult,
+    model.read(model.storage(), "latestAcademyScores"),
+    model.read(model.storage("localStorage"), "latestAcademyScores"),
+  ];
+  return (
+    records.find((record) =>
+      model.validResult(record, primary, window.QUIZ_QUESTIONS[DEFAULT_LANG]),
+    ) || null
+  );
 }
 
 async function loadGlobalAcademyStats(activeKey) {
@@ -867,12 +969,19 @@ async function loadGlobalAcademyStats(activeKey) {
     // Reuse the validated completion POST snapshot when available, including an
     // acknowledgement received before this result page rendered. Older GAS falls back to GET.
     const posted = window.ANALYTICS?.getCompletionStatistics?.();
-    const json = posted ? window.ACADEMY_STATS.parse(posted) : await window.ACADEMY_STATS.load(GAS_URL);
+    const json = posted
+      ? window.ACADEMY_STATS.parse(posted)
+      : await window.ACADEMY_STATS.load(GAS_URL);
     if (request !== globalStatsRequest) return;
     globalCountsCache = json.counts;
     globalTotalCache = json.total;
     globalUniqueCache = json.uniqueParticipants;
-    renderGlobalAcademyStats(globalCountsCache, activeKey, globalTotalCache, globalUniqueCache);
+    renderGlobalAcademyStats(
+      globalCountsCache,
+      activeKey,
+      globalTotalCache,
+      globalUniqueCache,
+    );
   } catch {
     if (request !== globalStatsRequest) return;
     globalCountsCache = null;
@@ -888,8 +997,15 @@ async function loadGlobalAcademyStats(activeKey) {
         copy.globalStatsLoadFailed,
       ),
     );
-    const retry = el("button", { type: "button", className: "secondary-button" }, getCurrentLang() === "en" ? "Retry" : "重新讀取");
-    retry.onclick = () => { retry.disabled = true; void loadGlobalAcademyStats(activeKey); };
+    const retry = el(
+      "button",
+      { type: "button", className: "secondary-button" },
+      getCurrentLang() === "en" ? "Retry" : "重新讀取",
+    );
+    retry.onclick = () => {
+      retry.disabled = true;
+      void loadGlobalAcademyStats(activeKey);
+    };
     shelf.appendChild(retry);
   }
 }
@@ -900,17 +1016,26 @@ function renderBarShelf(shelf, values, activeKey, personal = false) {
   const academyColors = getAcademyColors();
   const percentages = personal ? null : toDisplayPercentages(values);
   shelf.classList.toggle("personal-score-shelf", personal);
-  const maximumScore = personal ? Math.max(...window.QUIZ_RESULT_MODEL.getBounds(window.QUIZ_QUESTIONS[DEFAULT_LANG]).map(bound => bound.max)) : 100;
+  const maximumScore = personal
+    ? Math.max(
+        ...window.QUIZ_RESULT_MODEL.getBounds(
+          window.QUIZ_QUESTIONS[DEFAULT_LANG],
+        ).map((bound) => bound.max),
+      )
+    : 100;
 
   ACADEMY_ORDER.forEach((key, idx) => {
     const academyName = names[key] || key;
     const scorePercent = personal ? 0 : percentages[idx];
     // Each nonzero book keeps space for its title; only positive scores extend it.
     // Zero uses an empty cover and negative scores use stripes plus a signed label.
-    const bookHeight = personal ? MIN_BOOK_HEIGHT_PERCENT + Math.max(0, values[idx]) / maximumScore * (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT) :
-      MIN_BOOK_HEIGHT_PERCENT +
-      (scorePercent / 100) *
-        (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT);
+    const bookHeight = personal
+      ? MIN_BOOK_HEIGHT_PERCENT +
+        (Math.max(0, values[idx]) / maximumScore) *
+          (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT)
+      : MIN_BOOK_HEIGHT_PERCENT +
+        (scorePercent / 100) *
+          (MAX_BOOK_HEIGHT_PERCENT - MIN_BOOK_HEIGHT_PERCENT);
     const row = el("div", {
       className: `academy-book-item${key === activeKey ? " is-top" : ""}${personal && values[idx] < 0 ? " is-negative" : ""}${personal && values[idx] === 0 ? " is-zero" : ""}`,
     });
@@ -923,12 +1048,12 @@ function renderBarShelf(shelf, values, activeKey, personal = false) {
     fill.style.setProperty("--book-color", academyColors[key]);
     fill.style.setProperty("--book-height", `${bookHeight}%`);
     const nameLabel = el(
-        "span",
-        {
-          className: `academy-book-label academy-book-name${isLatinName ? " is-latin" : ""}`,
-        },
-        academyName,
-      );
+      "span",
+      {
+        className: `academy-book-label academy-book-name${isLatinName ? " is-latin" : ""}`,
+      },
+      academyName,
+    );
     fill.appendChild(nameLabel);
     const edge = el("span", { className: "academy-book-edge" });
     edge.setAttribute("aria-hidden", "true");
@@ -936,18 +1061,29 @@ function renderBarShelf(shelf, values, activeKey, personal = false) {
     const bands = el("span", { className: "academy-book-bands" });
     bands.setAttribute("aria-hidden", "true");
     fill.appendChild(bands);
-    const scoreLabel = el("span", { className: "academy-book-score" }, personal ? `${values[idx]} ${getResultCopy().scoreUnit}` : `${scorePercent}%`);
+    const scoreLabel = el(
+      "span",
+      { className: "academy-book-score" },
+      personal
+        ? `${values[idx]} ${getResultCopy().scoreUnit}`
+        : `${scorePercent}%`,
+    );
     fill.appendChild(scoreLabel);
     bar.appendChild(fill);
     row.appendChild(bar);
     if (idx === 0 || idx === ACADEMY_ORDER.length - 1) {
-      const bookend = el("span", { className: `academy-bookend ${idx === 0 ? "is-left" : "is-right"}` });
+      const bookend = el("span", {
+        className: `academy-bookend ${idx === 0 ? "is-left" : "is-right"}`,
+      });
       bookend.setAttribute("aria-hidden", "true");
       row.appendChild(bookend);
     }
     shelf.appendChild(row);
-    const showBook = () => { fill.style.height = fill.style.getPropertyValue("--book-height"); };
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) showBook();
+    const showBook = () => {
+      fill.style.height = fill.style.getPropertyValue("--book-height");
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      showBook();
     else setTimeout(showBook, idx * 80 + 16);
   });
 }
@@ -971,7 +1107,12 @@ function getAcademyColors() {
   };
 }
 
-function renderGlobalAcademyStats(counts, activeKey, total, uniqueParticipants) {
+function renderGlobalAcademyStats(
+  counts,
+  activeKey,
+  total,
+  uniqueParticipants,
+) {
   const shelf = document.getElementById("academyGlobalBookShelf");
   const totalEl = document.getElementById("academyGlobalStatsTotal");
   if (!shelf || !totalEl) return;
@@ -989,7 +1130,10 @@ function renderGlobalAcademyStats(counts, activeKey, total, uniqueParticipants) 
   }
 
   const values = ACADEMY_ORDER.map((k) => Number(counts[k]) || 0);
-  totalEl.textContent = window.ACADEMY_STATS.describe({ total: total ?? values.reduce((a, b) => a + b, 0), uniqueParticipants }, t);
+  totalEl.textContent = window.ACADEMY_STATS.describe(
+    { total: total ?? values.reduce((a, b) => a + b, 0), uniqueParticipants },
+    t,
+  );
   renderBarShelf(shelf, values, activeKey);
 }
 

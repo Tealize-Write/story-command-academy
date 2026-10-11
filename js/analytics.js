@@ -124,6 +124,23 @@
     return { source: entrySource || "direct", referrer: entryReferrer };
   }
 
+  function redirectLegacyPage(page) {
+    if (!["quiz", "result"].includes(page)) throw new Error("Invalid redirect page.");
+    const incoming = new URLSearchParams(location.search);
+    const target = new URL("index.html", location.href);
+    target.searchParams.set("page", page);
+    for (const key of ["source", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
+      if (incoming.has(key)) target.searchParams.set(key, incoming.get(key));
+    }
+    // initializeAttribution has saved the original source/referrer before navigation.
+    // Carry only the source as a fallback when storage is blocked; never put the
+    // full referrer in the destination URL or attach an old attempt to this visit.
+    target.searchParams.set("source", getEntryAttribution().source);
+    if (page === "result" && incoming.get("academy")) target.searchParams.set("academy", incoming.get("academy"));
+    if (page === "quiz" && incoming.get("restart") === "1") target.searchParams.set("restart", "1");
+    location.replace(target.href);
+  }
+
   function setContext(details) {
     // Older drafts have no referrer. Never pair their source with a new visit's URL.
     if (typeof details.source === "string" && details.referrer === undefined && details.source !== trafficSource()) {
@@ -294,7 +311,7 @@
     });
   }
 
-  window.ANALYTICS = { track, flush, setContext, getSource: trafficSource, getEntryAttribution, getCompletionStatistics };
+  window.ANALYTICS = { track, flush, setContext, getSource: trafficSource, getEntryAttribution, getCompletionStatistics, redirectLegacyPage };
   document.addEventListener("click", trackClick, true);
   document.addEventListener("auxclick", trackClick, true);
   document.addEventListener("visibilitychange", () => {
