@@ -580,8 +580,10 @@ function initializeResultPage() {
 
   ACADEMY_ORDER.forEach(academy => document.body.classList.remove("theme-" + academy));
   const analyticsRecord = readLatestResult(key);
-  window.ANALYTICS?.setContext({ keyword: key, attemptId: analyticsRecord?.completionId,
-    source: analyticsRecord?.source });
+  const entry = window.ANALYTICS?.getEntryAttribution();
+  window.ANALYTICS?.setContext({ keyword: key, attemptId: analyticsRecord?.completionId || "",
+    source: analyticsRecord?.source || entry?.source || "direct",
+    referrer: analyticsRecord ? analyticsRecord.referrer || "" : entry?.referrer || "" });
   renderContent(key);
   if (!wrap.dataset.ready) {
     wrap.dataset.ready = "true";

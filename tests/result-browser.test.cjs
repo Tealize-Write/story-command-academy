@@ -86,7 +86,7 @@ test('quiz progress, compact layout, result rendering and completion', { timeout
     const threadsStart = page.waitForRequest(request => request.url() === `${base}/analytics` &&
       request.method() === 'POST' && request.postDataJSON().action === 'quiz_started');
     await page.locator('.index_button').click();
-    await page.waitForURL('**/*page=quiz');
+    await page.waitForURL('**/*page=quiz*');
     assert.equal((await threadsStart).postDataJSON().source, 'threads');
     await page.goto(`${base}/index.html?page=result&academy=blue`);
     await page.locator('.result-quiz-nav a.result-utility-link').click();

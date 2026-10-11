@@ -27,6 +27,7 @@ const PENDING_TIE_KEY = "pendingAcademyTie";
 const DRAFT_KEY = "academyQuizDraft";
 let attemptId = "";
 let quizSource = "direct";
+let quizReferrer = "";
 let resumeRecord = null;
 let progressSaved = false;
 let seenStages = new Set();
@@ -134,7 +135,7 @@ function newAttemptId() {
 function saveProgress() {
   captureActiveTime();
   const record = { version: RESULT_MODEL.VERSION, attemptId, answers: [...answerHistory], currentIndex: qIndex,
-    startedAt: window.quizStartTime, source: quizSource, seenStages: [...seenStages], savedAt: Date.now(), activeMilliseconds };
+    startedAt: window.quizStartTime, source: quizSource, referrer: quizReferrer, seenStages: [...seenStages], savedAt: Date.now(), activeMilliseconds };
   progressSaved = writeQuizRecord(DRAFT_KEY, record).persistent;
   updateSaveStatus();
 }
@@ -160,13 +161,14 @@ function resumeQuiz() {
   qIndex = resumeRecord.currentIndex;
   attemptId = resumeRecord.attemptId;
   quizSource = resumeRecord.source;
+  quizReferrer = resumeRecord.referrer || "";
   window.quizStartTime = resumeRecord.startedAt;
   activeMilliseconds = Number(resumeRecord.activeMilliseconds) || 0;
   activeSince = document.visibilityState === "hidden" ? null : Date.now();
   seenStages = new Set(resumeRecord.seenStages || []);
   renderedIndex = null;
   scores = RESULT_MODEL.scoreAnswers(answerHistory, QUIZ_QUESTIONS[currentLang], true);
-  window.ANALYTICS?.setContext({ attemptId, source: quizSource, keyword: "" });
+  window.ANALYTICS?.setContext({ attemptId, source: quizSource, referrer: quizReferrer, keyword: "" });
   window.ANALYTICS?.track("quiz_resumed");
   resumeRecord = null;
   saveProgress();
@@ -200,7 +202,9 @@ function startQuiz(action = "quiz_started") {
   RESULT_MODEL.remove(RESULT_MODEL.storage(), PENDING_TIE_KEY);
   RESULT_MODEL.remove(RESULT_MODEL.storage(), DRAFT_KEY);
   attemptId = newAttemptId();
-  quizSource = window.ANALYTICS?.getSource() || getTrafficSource();
+  const entry = window.ANALYTICS?.getEntryAttribution();
+  quizSource = entry?.source || getTrafficSource();
+  quizReferrer = entry?.referrer || "";
   seenStages = new Set();
   renderedIndex = null;
   qIndex = 0;
@@ -209,7 +213,7 @@ function startQuiz(action = "quiz_started") {
   window.quizStartTime = Date.now();
   activeMilliseconds = 0;
   activeSince = document.visibilityState === "hidden" ? null : Date.now();
-  window.ANALYTICS?.setContext({ attemptId, source: quizSource, keyword: "" });
+  window.ANALYTICS?.setContext({ attemptId, source: quizSource, referrer: quizReferrer, keyword: "" });
   window.ANALYTICS?.track(action);
   // GAS 暖機：趁玩家答題期間預先喚醒 GAS 實例，消除結果頁的冷啟動延遲
   if (GAS_URL && !GAS_URL.startsWith("__")) {
@@ -383,6 +387,7 @@ function finalizeAnswers() {
       scores: [...scores],
       startedAt: window.quizStartTime,
       source: quizSource,
+      referrer: quizReferrer,
       activeMilliseconds,
       savedAt: Date.now(),
     };
@@ -411,7 +416,8 @@ function restoreTieDecision() {
   pendingTie = record;
   attemptId = record.attemptId || newAttemptId();
   quizSource = record.source || "direct";
-  window.ANALYTICS?.setContext({ attemptId, source: quizSource, keyword: "" });
+  quizReferrer = record.referrer || "";
+  window.ANALYTICS?.setContext({ attemptId, source: quizSource, referrer: quizReferrer, keyword: "" });
   window.ANALYTICS?.track("quiz_resumed");
   progressSaved = writeQuizRecord(PENDING_TIE_KEY, { ...record, attemptId }).persistent;
   updateSaveStatus();
@@ -468,6 +474,7 @@ function completeResult(primaryTop, selectionSource) {
     primary: primaryTop,
     selectionSource,
     source: quizSource,
+    referrer: quizReferrer,
     savedAt: Date.now(),
     activeMilliseconds,
   };
@@ -512,6 +519,7 @@ function submitToGAS(scoreArr, topKey, selectionSource = "automatic") {
     attemptId,
     keyword: topKey,
     source: pendingTie?.source || quizSource,
+    referrer: pendingTie?.referrer ?? quizReferrer,
     selectionSource,
     timeSpent,
     activeTimeSpent: Math.round(activeMilliseconds / 1000),

@@ -128,6 +128,55 @@ test('sends fixed event names and separates page, platform, language and target'
   assert.equal(state.api.getSource(), 'instagram');
 });
 
+test('visit attribution stays separate from a resumed attempt and explicit return tags cannot overwrite the attempt', async () => {
+  const state = setup({ search: '?source=google', referrer: 'https://www.google.com/', pathname: '/story-command-academy/index.html' });
+  state.api.setContext({ source: 'threads', referrer: 'https://l.threads.com/', attemptId: 'old-attempt' });
+  state.api.track('quiz_entry_clicked');
+  state.api.track('quiz_resumed');
+  await tick();
+  await state.api.flush(true);
+  const entry = state.requests.find(r => r.payload.action === 'quiz_entry_clicked').payload;
+  const resumed = state.requests.find(r => r.payload.action === 'quiz_resumed').payload;
+  assert.equal(entry.source, 'google');
+  assert.equal(entry.referrer, 'https://www.google.com/');
+  assert.equal(entry.attemptId, '');
+  assert.equal(resumed.source, 'threads');
+  assert.equal(resumed.referrer, 'https://l.threads.com/');
+  assert.equal(resumed.attemptId, 'old-attempt');
+  state.api.setContext({ ...state.api.getEntryAttribution(), attemptId: 'new-attempt' });
+  state.api.track('quiz_restarted'); await tick();
+  assert.equal(state.requests.at(-1).payload.source, 'google');
+  assert.equal(state.requests.at(-1).payload.referrer, 'https://www.google.com/');
+});
+
+test('saved referrer restores after session loss without inventing one for old drafts', async () => {
+  const state = setup({ search: '?source=google', referrer: 'https://www.google.com/', blockedSession: true });
+  state.api.setContext({ attemptId: 'saved', source: 'instagram', referrer: 'https://instagram.com/' });
+  state.api.track('work_link_clicked', { platform: 'cxc' }); await tick();
+  assert.equal(state.requests[0].payload.source, 'instagram');
+  assert.equal(state.requests[0].payload.referrer, 'https://instagram.com/');
+  const old = setup({ search: '', referrer: 'https://www.google.com/' });
+  old.api.setContext({ attemptId: 'old', source: 'threads' });
+  old.api.track('quiz_resumed'); await tick();
+  assert.equal(old.requests[0].payload.referrer, '');
+  const incomplete = setup({ search: '' });
+  assert.equal(incomplete.api.track('quiz_completed', { scoringVersion: 'creative-traits-2', keyword: 'blue' }), false);
+  assert.equal(incomplete.requests.length, 0);
+});
+
+test('blocked visit storage carries only the source on the internal start link', async () => {
+  const state = setup({ search: '', referrer: 'https://instagram.com/', blockedSession: true });
+  const link = { href: 'https://tealize-write.github.io/story-command-academy/index.html?page=quiz',
+    dataset: { analyticsEvent: 'quiz_entry_clicked' } };
+  state.handlers.click({ type: 'click', target: { closest: () => link } });
+  await tick();
+  const url = new URL(link.href);
+  assert.equal(url.searchParams.get('source'), 'instagram');
+  assert.equal(url.searchParams.has('referrer'), false);
+  assert.equal(state.requests[0].payload.source, 'instagram');
+  assert.equal(state.requests[0].payload.referrer, 'https://instagram.com/');
+});
+
 test('retains network failures and retries with the same event ID until acknowledged', async () => {
   let failing = true;
   const state = setup({ fetch: async () => {

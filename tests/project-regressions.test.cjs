@@ -5,6 +5,90 @@ const path = require('node:path');
 const http = require('node:http');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
+test('external attribution persists through saved progress, a different return source, completion and outbound links', { timeout: 60000 }, async () => {
+  const root = process.cwd();
+  const server = http.createServer((req, res) => {
+    const name = new URL(req.url, 'http://localhost').pathname;
+    const file = path.resolve(root, '.' + (name === '/' ? '/index.html' : name));
+    if (!file.startsWith(root + path.sep)) { res.writeHead(403); return res.end(); }
+    fs.readFile(file, (error, data) => {
+      if (error) { res.writeHead(404); return res.end(); }
+      res.setHeader('Content-Type', path.extname(file) === '.js' ? 'text/javascript' : 'text/html; charset=utf-8'); res.end(data);
+    });
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const events = [], errors = [];
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : process.platform === 'win32' ? { channel: 'msedge' } : {}) });
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    await context.route('**/*', async route => {
+      const url = new URL(route.request().url());
+      if (url.pathname === '/js/config.js') return route.fulfill({ contentType: 'text/javascript', body:
+        `const GAS_URL='${base}/analytics'; function getClientId(){return 'attribution-test';} function getTrafficSource(){return 'direct';} function getDeviceType(){return 'desktop';} function getLocationPayload(){return {};}` });
+      if (url.pathname === '/analytics') {
+        if (route.request().method() === 'POST') {
+          const payload = route.request().postDataJSON(); events.push(payload);
+          return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok', eventId: payload.eventId }) });
+        }
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ counts: { red:1,green:0,blue:0,black:0,white:0 }, total:1 }) });
+      }
+      return url.origin === base ? route.continue() : route.abort();
+    });
+    const first = await context.newPage(); first.on('pageerror', error => errors.push(error.message));
+    await first.goto(`${base}/index.html`, { referer: 'https://instagram.com/' });
+    await first.locator('.index_button').click();
+    await first.waitForURL('**/*page=quiz*');
+    await first.locator('.quiz-option-btn').first().click();
+    await first.waitForFunction(() => JSON.parse(localStorage.getItem('academyQuizDraft')).answers.length === 1);
+    const draft = await first.evaluate(() => JSON.parse(localStorage.getItem('academyQuizDraft')));
+    assert.equal(draft.source, 'instagram'); assert.equal(draft.referrer, 'https://instagram.com/');
+    await first.close();
+    const returning = await context.newPage(); returning.on('pageerror', error => errors.push(error.message));
+    await returning.goto(`${base}/index.html?page=quiz&source=google`, { referer: 'https://www.google.com/' });
+    await returning.locator('#resume-quiz').click();
+    await returning.waitForFunction(() => document.getElementById('question-card').style.display !== 'none');
+    await returning.evaluate(() => {
+      answerHistory = QUIZ_QUESTIONS[currentLang].map(() => 0);
+      qIndex = answerHistory.length;
+      scores = RESULT_MODEL.scoreAnswers(answerHistory, QUIZ_QUESTIONS[currentLang]);
+      completeResult(RESULT_MODEL.classify(scores).top[0], 'automatic');
+    });
+    await returning.waitForFunction(() => document.body.dataset.page === 'result');
+    await returning.evaluate(() => window.ANALYTICS.flush(true));
+    const completion = events.find(e => e.action === 'quiz_completed');
+    assert.equal(completion.attemptId, draft.attemptId);
+    assert.equal(completion.source, 'instagram'); assert.equal(completion.referrer, 'https://instagram.com/');
+    const saved = await returning.evaluate(() => JSON.parse(localStorage.getItem('latestAcademyScores')));
+    assert.equal(saved.referrer, 'https://instagram.com/');
+    await returning.locator('.result-reading-link').first().evaluate(link => link.click());
+    await returning.evaluate(() => window.ANALYTICS.flush(true));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const clicked = events.find(e => e.action === 'work_link_clicked');
+    assert.equal(clicked.attemptId, draft.attemptId); assert.equal(clicked.source, 'instagram'); assert.equal(clicked.referrer, 'https://instagram.com/');
+    await returning.goto(`${base}/about.html`);
+    assert.equal(await returning.evaluate(() => window.ANALYTICS.getSource()), 'instagram');
+    assert.equal(await returning.evaluate(() => window.ANALYTICS.getEntryAttribution().source), 'google');
+    await returning.locator('#about-quiz-link').click();
+    await returning.locator('.index_button').click();
+    await returning.waitForURL('**/*page=quiz*');
+    const restarted = await returning.evaluate(() => JSON.parse(localStorage.getItem('academyQuizDraft')));
+    assert.equal(restarted.source, 'google');
+    assert.equal(restarted.referrer, 'https://www.google.com/');
+    assert.notEqual(restarted.attemptId, draft.attemptId);
+    // A generic/shared academy page is not a completed attempt owned by this visitor.
+    await returning.goto(`${base}/index.html?page=result&academy=${saved.primary === 'white' ? 'red' : 'white'}`);
+    await returning.locator('.result-reading-link').first().evaluate(link => link.click());
+    await returning.evaluate(() => window.ANALYTICS.flush(true));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const genericClick = events.filter(e => e.action === 'work_link_clicked').at(-1);
+    assert.equal(genericClick.attemptId, '');
+    assert.equal(genericClick.source, 'google');
+    assert.deepEqual(errors, []);
+  } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }
+});
+
 test('independent drafts, final answer editing, acknowledged statistics, safe routing and result actions', { timeout: 60000 }, async () => {
   const root = process.cwd();
   const server = http.createServer((req, res) => {
